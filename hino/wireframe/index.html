@@ -1,0 +1,868 @@
+<title>HINO 風險排班</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* 版面：淺藍灰舞台上放一個 iTRAQ 網頁視窗（頭家）與 iPhone 外框（頭家手機、司機手機）。沿用 yoxi 原型設計系統：白色圓角卡片、海軍藍字、膠囊按鈕、燈號＝淡底＋色點＋字、紅色只給主要行動。 */
+:root {
+  color-scheme: light;
+  --red: #DC2F1E; --red-press: #C42819; --red-soft: #FDECEA;
+  --navy-900: #051122; --navy-800: #0B1F38; --navy-600: #22344D;
+  --slate-600: #3C4C60; --slate-400: #5E7089;
+  --line: #DFE4ED; --line-strong: #C3CBDC;
+  --stage: #E9EEF4; --bg: #F2F6F9; --surface: #FFFFFF;
+  --blue: #0C4C80; --blue-soft: #EAF1F8;
+  --go: #0E9F4B; --go-soft: #E6F6EC; --go-ink: #0A7A39;
+  --warn: #E59A00; --warn-soft: #FFF4DB; --warn-ink: #8A5A00;
+  --stop: #D83A2E; --stop-soft: #FCE9E7; --stop-ink: #A82A20;
+  --na: #8592A6; --na-soft: #EAEDF3; --na-ink: #3C4C60;
+  --stop-deep: #7E1F17; --warn-deep: #5E3D00; --go-deep: #0A5E2D; --link-on-navy: #9CC7F0;
+  --font-ui: "Noto Sans TC", system-ui, -apple-system, sans-serif;
+  --font-num: "Montserrat", "Noto Sans TC", system-ui, sans-serif;
+  --fs-2xs: 11px; --fs-xs: 12px; --fs-sm: 13px; --fs-md: 15px; --fs-lg: 17px; --fs-xl: 22px; --fs-2xl: 28px;
+  --r-xs: 8px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(5,17,34,.06), 0 6px 18px -8px rgba(5,17,34,.16);
+  --shadow-window: 0 2px 4px rgba(5,17,34,.05), 0 24px 48px -24px rgba(5,17,34,.28);
+  --ease-out: cubic-bezier(.23,1,.32,1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { background: var(--stage); color: var(--navy-800); }
+body { font-family: var(--font-ui); font-size: var(--fs-md); line-height: 1.5; -webkit-font-smoothing: antialiased; padding-inline: 16px; padding-block: 0 48px; }
+::selection { background: var(--red); color: #fff; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+:focus-visible { outline: 2.5px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+
+/* 舞台 */
+.stage-head { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-block: 20px 16px; }
+.stage-title { display: flex; align-items: center; gap: 10px; }
+.stage-title b { font-size: var(--fs-lg); color: var(--navy-800); }
+.nw { white-space: nowrap; }
+.proto { font-size: var(--fs-2xs); font-weight: 700; padding: 3px 9px; border-radius: var(--r-pill); background: rgba(5,17,34,.74); color: #fff; white-space: nowrap; }
+.seg { display: inline-flex; background: var(--line); border-radius: var(--r-pill); padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { height: 36px; padding: 0 16px; border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; color: var(--slate-600); transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease; }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--navy-800); font-weight: 700; box-shadow: 0 1px 3px rgba(5,17,34,.12); }
+@media (hover:hover) and (pointer:fine) { .seg button[aria-pressed="false"]:hover { color: var(--navy-800); } }
+.reset { height: 36px; padding: 0 14px; }
+.srclegend { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: var(--fs-xs); color: var(--slate-400); }
+
+/* 資料來源標示：實線＝真實、虛線＝計算、點線＝模擬 */
+.src { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: var(--r-xs); font-size: 11px; font-weight: 500; color: var(--slate-600); border: 1px solid var(--line-strong); white-space: nowrap; vertical-align: 1px; margin-left: 2px; }
+.src.calc { border-style: dashed; }
+.src.mock { border-style: dotted; color: var(--slate-400); }
+
+/* 燈號膠囊：淡底＋色點＋字 */
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.chip.g { background: var(--go-soft); color: var(--go-ink); } .chip.g .dot { background: var(--go); }
+.chip.y { background: var(--warn-soft); color: var(--warn-ink); } .chip.y .dot { background: var(--warn); }
+.chip.r { background: var(--stop-soft); color: var(--stop-ink); } .chip.r .dot { background: var(--stop); }
+.chip.na { background: var(--na-soft); color: var(--na-ink); } .chip.na .dot { background: transparent; border: 1.5px solid var(--na); }
+.chip.lg { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
+.chip.lg .dot { width: 10px; height: 10px; }
+
+/* 按鈕 */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: var(--r-pill); font-weight: 700; font-size: var(--fs-sm); white-space: nowrap; transition: transform 140ms var(--ease-out), background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease; }
+.btn:active { transform: scale(.97); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-primary { background: var(--red); color: #fff; }
+.btn-navy { background: var(--navy-800); color: #fff; }
+.btn-ghost { background: #fff; color: var(--navy-800); box-shadow: 0 0 0 1.5px var(--line-strong) inset; }
+.btn-text { height: 36px; padding: 0 10px; color: var(--blue); font-weight: 500; border-radius: var(--r-xs); }
+@media (hover:hover) and (pointer:fine) {
+  .btn-primary:hover { background: var(--red-press); }
+  .btn-navy:hover { background: var(--navy-600); }
+  .btn-ghost:hover { box-shadow: 0 0 0 1.5px var(--slate-400) inset; }
+  .btn-text:hover { background: var(--blue-soft); }
+}
+.btn[disabled] { opacity: .55; cursor: default; }
+.btn[disabled]:active { transform: none; }
+.btn.block { width: 100%; height: 52px; font-size: var(--fs-md); }
+
+/* 網頁視窗 */
+.window { max-width: 1400px; margin: 0 auto; background: var(--bg); border-radius: var(--r-lg); box-shadow: var(--shadow-window); overflow: clip; }
+.win-top { display: flex; align-items: center; gap: 20px; padding: 0 20px; height: 56px; background: #fff; border-bottom: 1px solid var(--line); }
+.win-top .logo { font-weight: 700; font-size: var(--fs-md); letter-spacing: .01em; white-space: nowrap; }
+.win-top .logo span { color: var(--red); }
+.tabs { display: flex; gap: 4px; height: 100%; }
+.tabs button { height: 100%; padding: 0 14px; font-size: var(--fs-sm); font-weight: 500; color: var(--slate-400); border-bottom: 2.5px solid transparent; transition: color 160ms ease, border-color 160ms ease; }
+.tabs button[aria-current="page"] { color: var(--navy-800); font-weight: 700; border-bottom-color: var(--red); }
+.win-top .who { margin-left: auto; font-size: var(--fs-sm); color: var(--slate-600); white-space: nowrap; }
+.win-body { padding: 20px; }
+
+/* 標題列 */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; margin-bottom: 16px; }
+.head h1 { font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+.head .sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font-size: var(--fs-sm); color: var(--slate-600); }
+.status { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; background: #fff; color: var(--slate-600); box-shadow: 0 0 0 1px var(--line-strong) inset; }
+.status.done { color: var(--navy-800); box-shadow: 0 0 0 1.5px var(--navy-800) inset; }
+.status.mod { color: var(--navy-800); box-shadow: 0 0 0 1.5px var(--line-strong) inset; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.filters .lbl { font-size: var(--fs-sm); color: var(--slate-600); margin-right: 2px; }
+.filters .lbl b { font-family: var(--font-num); font-size: var(--fs-xl); color: var(--navy-800); margin-inline: 2px; vertical-align: -2px; }
+.filters button.chip { cursor: pointer; height: 32px; padding: 0 12px; font-size: var(--fs-sm); transition: box-shadow 160ms ease, transform 140ms var(--ease-out); }
+.filters button.chip:active { transform: scale(.97); }
+@media (hover:hover) and (pointer:fine) { .filters button.chip:hover { box-shadow: 0 0 0 1.5px currentColor inset; } }
+.filters button.chip[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--navy-800); }
+.filters button.chip[aria-pressed="true"] { font-weight: 700; }
+.filtering { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--slate-600); }
+.acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+
+.guard { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 16px; margin-bottom: 14px; border-radius: var(--r-md); background: var(--stop-soft); color: var(--stop-deep); font-size: var(--fs-sm); }
+.guard b { font-size: var(--fs-md); }
+.guard .sp { flex: 1; min-width: 12px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: start; }
+@media (max-width: 1180px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
+
+/* 時刻表 */
+.tt-card { padding: 14px 0 6px; }
+.tt-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 0 16px 12px; font-size: var(--fs-xs); color: var(--slate-600); }
+.tt-legend .nightsw { display: inline-flex; align-items: center; gap: 6px; }
+.tt-legend .nightsw i { width: 18px; height: 12px; border-radius: var(--r-xs); background: rgba(11,31,56,.07); }
+.tt-scroll { overflow-x: auto; }
+.tt { min-width: 780px; }
+.tt-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); }
+.tt-row + .tt-row { border-top: 1px solid var(--line); }
+.tt-who { padding: 10px 12px 10px 16px; display: grid; gap: 1px; align-content: center; position: sticky; left: 0; z-index: 2; background: #fff; }
+.tt-who .n { font-weight: 700; font-size: var(--fs-md); display: flex; align-items: baseline; gap: 6px; }
+.tt-who .n .num { font-size: var(--fs-md); }
+.tt-who .m { font-size: var(--fs-xs); color: var(--slate-400); }
+.tt-who .leave { justify-self: start; font-size: var(--fs-2xs); font-weight: 700; color: var(--slate-600); background: var(--na-soft); padding: 1px 8px; border-radius: var(--r-pill); }
+.tt-axis { position: relative; height: 28px; overflow: hidden; }
+.tt-axis > span { position: absolute; top: 6px; font-size: var(--fs-2xs); color: var(--slate-400); transform: translateX(-50%); font-family: var(--font-num); font-weight: 600; }
+.tt-axis > span.first { transform: none; padding-left: 4px; }
+.tt-axis > span.nd { color: var(--navy-800); }
+.tt-lane { position: relative; height: 64px; overflow: hidden; background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: calc(100% / 10) 100%; }
+.night { position: absolute; top: 0; bottom: 0; background: rgba(11,31,56,.05); pointer-events: none; }
+.midnight { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--line-strong); pointer-events: none; }
+.task { position: absolute; top: 9px; height: 46px; display: flex; align-items: stretch; background: #fff; border-radius: var(--r-sm); box-shadow: 0 0 0 1px var(--line) inset, var(--shadow-card); overflow: hidden; text-align: left; transition: box-shadow 200ms ease, transform 200ms var(--ease-out), opacity 200ms ease; }
+@media (hover:hover) and (pointer:fine) { .task:hover { transform: translateY(-1px); } }
+.task[aria-current="true"] { box-shadow: 0 0 0 2px var(--navy-800), var(--shadow-card); }
+.task.dim { opacity: .3; }
+.leg { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; padding: 0 2px; min-width: 0; container-type: inline-size; }
+.leg.g { background: var(--go-soft); } .leg.y { background: var(--warn-soft); } .leg.r { background: var(--stop-soft); } .leg.na { background: var(--na-soft); }
+.leg .lw { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-2xs); font-weight: 700; white-space: nowrap; }
+.leg.g .lw { color: var(--go-ink); } .leg.y .lw { color: var(--warn-ink); } .leg.r .lw { color: var(--stop-ink); } .leg.na .lw { color: var(--na-ink); }
+.leg .lw i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.leg.g .lw i { background: var(--go); } .leg.y .lw i { background: var(--warn); } .leg.r .lw i { background: var(--stop); } .leg.na .lw i { border: 1.5px solid var(--na); }
+.leg .t { font-size: 11px; color: var(--slate-600); white-space: nowrap; font-family: var(--font-num); font-weight: 500; }
+@container (min-width: 41px) { .leg .lw, .leg .t { margin-left: 6px; } }
+@container (max-width: 72px) { .leg .nm, .leg .t { display: none; } }
+@container (max-width: 40px) { .leg .lw { flex-direction: column; gap: 2px; font-size: 11px; line-height: 1; } }
+.gap { background: repeating-linear-gradient(135deg, #fff 0 4px, var(--bg) 4px 8px); }
+.task.flash { animation: settle 1s var(--ease-out); }
+@keyframes settle { from { box-shadow: 0 0 0 6px rgba(12,76,128,.28), var(--shadow-card); } to { box-shadow: 0 0 0 0 rgba(12,76,128,0), var(--shadow-card); } }
+
+/* 側欄 */
+.side { padding: 18px; display: grid; gap: 16px; position: sticky; top: 16px; }
+@media (max-width: 1180px) { .side { position: static; } }
+.side h2 { font-size: var(--fs-lg); line-height: 1.35; }
+.side .sub { font-size: var(--fs-sm); color: var(--slate-600); margin-top: 2px; }
+.back { justify-self: start; display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px 0 6px; margin: -6px 0 -4px -6px; border-radius: var(--r-pill); font-size: var(--fs-sm); color: var(--slate-600); }
+.back svg { width: 18px; height: 18px; }
+@media (hover:hover) and (pointer:fine) { .back:hover { background: rgba(5,17,34,.06); } }
+.why { padding: 14px 16px; border-radius: var(--r-md); font-size: var(--fs-md); line-height: 1.55; }
+.why.r { background: var(--stop-soft); color: var(--stop-deep); } .why.y { background: var(--warn-soft); color: var(--warn-deep); } .why.na { background: var(--na-soft); color: var(--slate-600); } .why.g { background: var(--go-soft); color: var(--go-deep); }
+.why b { font-weight: 700; }
+.rec { display: grid; gap: 10px; }
+.h3 { font-size: var(--fs-sm); font-weight: 700; color: var(--navy-800); }
+.rec .res { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: var(--fs-sm); color: var(--slate-600); }
+.opt { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--line) inset; }
+.opt .row1 { display: flex; align-items: center; gap: 10px; }
+.opt .row1 .what { flex: 1; font-weight: 700; font-size: var(--fs-sm); }
+.opt .cost { font-size: var(--fs-xs); color: var(--slate-600); }
+.opt .btn { height: 36px; padding: 0 14px; font-size: var(--fs-xs); }
+details.more { font-size: var(--fs-sm); }
+details.more summary { cursor: pointer; color: var(--blue); font-weight: 500; padding: 6px 0; list-style: none; display: inline-flex; align-items: center; gap: 4px; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary svg { width: 16px; height: 16px; transition: transform 200ms var(--ease-out); }
+details.more[open] summary svg { transform: rotate(90deg); }
+details.more .opts { display: grid; gap: 8px; margin-top: 6px; }
+.legs2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.legbox { padding: 10px 12px; border-radius: var(--r-md); background: var(--bg); display: grid; gap: 4px; font-size: var(--fs-xs); color: var(--slate-600); }
+.legbox .tm { font-family: var(--font-num); font-weight: 600; font-size: var(--fs-sm); color: var(--navy-800); }
+.cats { display: grid; }
+.cat { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--slate-600); }
+.cat .k { font-weight: 700; color: var(--navy-800); padding-top: 3px; }
+.cat .body { display: grid; gap: 6px; justify-items: start; }
+.cat .act { color: var(--navy-800); font-weight: 700; }
+.cat .ref { font-size: var(--fs-xs); color: var(--slate-400); }
+.cat.ok { grid-template-columns: 1fr; color: var(--slate-400); font-size: var(--fs-xs); }
+.next { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--blue-soft); color: var(--blue); font-size: var(--fs-sm); font-weight: 700; text-align: left; }
+.next svg { width: 18px; height: 18px; flex: none; }
+.ai-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-md); background: var(--blue-soft); color: var(--blue); font-size: var(--fs-sm); line-height: 1.55; }
+.ai-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.ai-note ol { margin: 6px 0 0; padding-left: 1.2em; display: grid; gap: 2px; color: var(--navy-800); font-weight: 700; }
+
+.tl { position: relative; height: 50px; margin: 2px 4px 6px; }
+.tl-track { position: absolute; left: 0; right: 0; top: 22px; height: 2px; background: var(--line); }
+.tl-band { position: absolute; top: 17px; height: 12px; border-radius: 6px; opacity: .28; }
+.tl-dot { position: absolute; top: 15px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(5,17,34,.3); }
+.tl-deadline { position: absolute; top: 2px; bottom: 6px; width: 0; border-left: 2px dashed var(--red); }
+.tl-deadline span { position: absolute; top: -4px; right: 5px; font-size: 11px; font-weight: 700; color: var(--red); font-family: var(--font-num); white-space: nowrap; }
+.tl-ticks { position: absolute; left: 0; right: 0; bottom: -4px; height: 12px; font-size: 11px; color: var(--slate-400); font-family: var(--font-num); }
+.tl-ticks > span { position: absolute; transform: translateX(-50%); }
+.tl-ticks > span:first-child { transform: none; }
+/* 待處理清單 */
+.queue { display: grid; gap: 8px; }
+.qitem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 12px 14px; border-radius: var(--r-md); background: #fff; box-shadow: 0 0 0 1px var(--line) inset; text-align: left; transition: box-shadow 160ms ease, transform 140ms var(--ease-out); }
+.qitem:active { transform: scale(.99); }
+@media (hover:hover) and (pointer:fine) { .qitem:hover { box-shadow: 0 0 0 1.5px var(--slate-400) inset; } }
+.qitem .t1 { font-weight: 700; font-size: var(--fs-sm); }
+.qitem .t2 { font-size: var(--fs-xs); color: var(--slate-600); }
+.qitem svg { width: 18px; height: 18px; color: var(--slate-400); }
+.empty { padding: 20px; border-radius: var(--r-md); background: var(--go-soft); color: var(--go-deep); font-size: var(--fs-sm); display: grid; gap: 8px; justify-items: start; }
+
+/* 用講的改排班 */
+.said { padding: 14px 16px; border-radius: var(--r-md); background: var(--bg); font-size: var(--fs-lg); line-height: 1.5; font-weight: 500; }
+.said .lbl { display: block; font-size: var(--fs-xs); color: var(--slate-400); font-weight: 500; margin-bottom: 4px; }
+.listening { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--slate-600); }
+.listening i { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 提示列（可復原） */
+.snack { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 14px; width: min(640px, calc(100% - 32px)); padding: 10px 10px 10px 18px; border-radius: var(--r-md); background: var(--navy-800); color: #fff; font-size: var(--fs-sm); box-shadow: 0 10px 30px rgba(5,17,34,.3); animation: snackIn 260ms var(--ease-out) both; }
+.snack p { flex: 1; }
+.snack .btn-text { color: var(--link-on-navy); height: 34px; }
+@media (hover:hover) and (pointer:fine) { .snack .btn-text:hover { background: rgba(255,255,255,.1); } }
+@keyframes snackIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* 收車後回顧 */
+.review { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .review { grid-template-columns: minmax(0, 1fr); } }
+.pad { padding: 18px; display: grid; gap: 14px; align-content: start; }
+.pad h2 { font-size: var(--fs-lg); }
+.tbl-scroll { overflow-x: auto; }
+table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+table.t th { text-align: left; font-weight: 500; color: var(--slate-400); font-size: var(--fs-xs); padding: 0 10px 8px; }
+table.t td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; color: var(--slate-600); }
+table.t td:first-child { color: var(--navy-800); font-weight: 700; }
+.chart text { font-family: var(--font-num); }
+.svc-item { display: grid; gap: 8px; justify-items: start; padding-top: 14px; border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--slate-600); }
+.ai-by { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: 700; color: var(--blue); }
+.ai-by svg { width: 14px; height: 14px; }
+.ai-text { color: var(--blue); font-size: var(--fs-sm); line-height: 1.55; }
+.svc-item .h { font-weight: 700; color: var(--navy-800); font-size: var(--fs-md); }
+.small { font-size: var(--fs-xs); color: var(--slate-400); }
+
+/* 手機 */
+.phones { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; align-items: flex-start; padding-block: 8px 0; }
+.ph-col { display: grid; gap: 12px; justify-items: center; }
+.ph-cap { font-size: var(--fs-sm); color: var(--slate-600); font-weight: 500; }
+.device { zoom: var(--z, .8); position: relative; width: 393px; height: 852px; border-radius: 58px; background: #0A0F17; padding: 12px; box-shadow: 0 30px 60px -20px rgba(5,17,34,.45), 0 0 0 2px #2A3240 inset; flex: none; }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: var(--bg); isolation: isolate; display: flex; flex-direction: column; }
+.screen.dark { background: radial-gradient(120% 80% at 50% 0%, #1B3254 0%, #0B1F38 45%, #051122 100%); color: #fff; }
+.island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 122px; height: 35px; border-radius: 20px; background: #000; z-index: 5; }
+.statusbar { height: 54px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 34px 0 40px; font-family: var(--font-num); font-weight: 600; font-size: 16px; }
+.mark { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill); background: rgba(5,17,34,.74); color: #fff; white-space: nowrap; }
+.screen.dark .mark { background: rgba(255,255,255,.18); }
+.app { flex: 1; overflow-y: auto; padding: 4px 16px 40px; display: grid; gap: 12px; align-content: start; scrollbar-width: none; }
+.app::-webkit-scrollbar { display: none; }
+.app-title { font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -.01em; padding: 6px 4px 2px; }
+.app .card { padding: 16px; display: grid; gap: 10px; }
+.field-k { font-size: var(--fs-xs); color: var(--slate-400); font-weight: 500; }
+textarea { width: 100%; font: inherit; font-size: var(--fs-md); border: 0; border-radius: var(--r-md); padding: 12px 14px; min-height: 76px; resize: none; background: #fff; color: var(--navy-800); box-shadow: 0 0 0 1.5px var(--line-strong) inset; }
+textarea:focus-visible { outline: none; box-shadow: 0 0 0 2.5px var(--blue) inset; }
+.ok { display: flex; gap: 8px; align-items: center; padding: 12px 14px; border-radius: var(--r-md); background: var(--go-soft); color: var(--go-deep); font-size: var(--fs-sm); font-weight: 500; }
+.ok svg { width: 18px; height: 18px; flex: none; }
+.lock-clock { text-align: center; padding-top: 8px; }
+.lock-clock .d { font-size: 17px; font-weight: 500; opacity: .85; }
+.lock-clock .c { font-family: var(--font-num); font-weight: 600; font-size: 86px; line-height: 1; letter-spacing: -.03em; margin-top: 4px; }
+.notis { padding: 28px 12px 40px; display: grid; gap: 10px; }
+.noti { display: grid; gap: 6px; padding: 14px 16px; border-radius: 22px; background: rgba(248,249,251,.94); color: var(--navy-900); text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform 140ms var(--ease-out); }
+.noti:active { transform: scale(.98); }
+.noti .h { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--slate-600); }
+.noti .h .ic { width: 22px; height: 22px; border-radius: 6px; background: var(--red); color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; font-family: var(--font-num); }
+.noti .h .tm { margin-left: auto; font-family: var(--font-num); }
+.noti .b1 { font-weight: 700; font-size: var(--fs-md); }
+.noti .b2 { font-size: var(--fs-sm); color: var(--navy-600); }
+.notis .hint { text-align: center; font-size: var(--fs-xs); color: rgba(255,255,255,.65); padding-top: 6px; }
+.drive { padding: 18px 16px 40px; display: grid; gap: 14px; align-content: start; }
+.drive .eta { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: rgba(255,255,255,.7); }
+.drive .eta b { color: #fff; font-family: var(--font-num); font-size: var(--fs-xl); display: block; }
+.voicecard { padding: 18px; border-radius: 24px; background: rgba(14,20,30,.86); box-shadow: 0 10px 30px rgba(0,0,0,.35); display: grid; gap: 12px; }
+.voicecard .who { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: rgba(255,255,255,.7); }
+.voicecard .who i { width: 8px; height: 8px; border-radius: 50%; background: #5EE08F; }
+.voicecard q { font-size: 20px; line-height: 1.5; font-weight: 700; quotes: "「" "」"; }
+.say { display: flex; flex-wrap: wrap; gap: 8px; }
+.say button { height: 44px; padding: 0 16px; border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 700; color: #fff; box-shadow: 0 0 0 1.5px rgba(255,255,255,.35) inset; display: inline-flex; align-items: center; gap: 6px; }
+.say button svg { width: 16px; height: 16px; }
+@media (hover:hover) and (pointer:fine) { .say button:hover { background: rgba(255,255,255,.08); } }
+.drive .ok { background: rgba(94,224,143,.16); color: #9BF0BC; }
+.chip.dk { background: rgba(255,201,77,.24); color: #FFC94D; }
+.chip.dk .dot { background: #FFC94D; }
+.drive .src { color: rgba(255,255,255,.75); border-color: rgba(255,255,255,.4); }
+.noti .src { vertical-align: 0; }
+.noti .chip { justify-self: start; }
+.drive .note { font-size: var(--fs-xs); color: rgba(255,255,255,.6); }
+.report { display: grid; gap: 10px; }
+.report button { height: 64px; border-radius: var(--r-lg); background: #fff; box-shadow: var(--shadow-card); font-size: 20px; font-weight: 700; transition: transform 140ms var(--ease-out); }
+.report button:active { transform: scale(.98); }
+
+@media (max-width: 760px) {
+  .stage-head { padding-block: 16px 12px; }
+  .srclegend { margin-left: 0; }
+  .win-top { gap: 10px; padding: 0 12px; }
+  .win-top .who { display: none; }
+  .win-body { padding: 14px; }
+  .head h1 { font-size: var(--fs-xl); }
+  .acts { margin-left: 0; width: 100%; }
+  .acts .btn { flex: 1 1 auto; }
+  .tt { min-width: 700px; }
+  .tt-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .tt-who { padding: 8px 8px 8px 12px; }
+  .tt-who .n { font-size: var(--fs-sm); }
+  .legs2 { grid-template-columns: 1fr; }
+  .device { --z: .85; }
+  .seg button { padding: 0 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .listening i { opacity: 1; }
+}
+</style>
+
+<header class="stage-head">
+  <div class="stage-title"><b>HINO iTRAQ <span class="nw">出車前風險排班</span></b><span class="proto">概念原型・示意資料</span></div>
+  <nav class="seg" aria-label="切換畫面">
+    <button data-view="web" aria-pressed="true">頭家・網頁</button>
+    <button data-view="bossPhone" aria-pressed="false">頭家・手機</button>
+    <button data-view="driver" aria-pressed="false">司機・手機</button>
+  </nav>
+  <button class="btn btn-ghost reset" data-act="reset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>退回原樣</button>
+  <div class="srclegend" aria-label="資料來源標示"><span>資料來源</span><span class="src">真實</span><span class="src calc">計算</span><span class="src mock">模擬</span></div>
+</header>
+
+<main>
+  <section id="v-web"></section>
+  <section id="v-bossPhone" hidden></section>
+  <section id="v-driver" hidden></section>
+</main>
+
+<script>
+const DATA = {"fleetMin": 90, "drivers": {"01": {"name": "文彬", "type": 300, "hours": 43.7, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 2}, "dpf": 0, "battery": 0.9}, "02": {"name": "文雄", "type": 500, "hours": 71.0, "dms": true, "minDay": 204, "minNight": 146, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "黃", "手機": "綠", "車道偏離": "紅", "急減速": "綠", "超速": "綠"}, "dtc": {"P20EE": 1}, "dpf": 0, "battery": 0.4}, "03": {"name": "志豪", "type": 500, "hours": 83.8, "dms": true, "minDay": 54, "minNight": 39, "lightDay": "黃", "lightNight": "黃", "others": {"分心": "紅", "手機": "黃", "車道偏離": "紅", "急減速": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 6.8}, "04": {"name": "嘉宏", "type": 300, "hours": 41.4, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 10}, "dpf": 0, "battery": 11.8}, "05": {"name": "宗翰", "type": 500, "hours": 41.5, "dms": true, "minDay": 91, "minNight": 65, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "綠", "手機": "綠", "車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 16.3}, "06": {"name": "志明", "type": 300, "hours": 37.5, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "黃", "超速": "黃"}, "dtc": {"U3FFF": 21}, "dpf": 0, "battery": 12.2}, "07": {"name": "阿華", "type": 700, "hours": 114.2, "dms": true, "minDay": 90, "minNight": 64, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "綠", "手機": "綠", "車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"P2002": 1}, "dpf": 1, "battery": 4.1}, "08": {"name": "承恩", "type": 700, "hours": 49.2, "dms": true, "minDay": 123, "minNight": 88, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "紅", "手機": "綠", "車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"P244B": 15, "P2002": 2}, "dpf": 17, "battery": 8.0}, "09": {"name": "俊傑", "type": 700, "hours": 50.7, "dms": true, "minDay": 69, "minNight": 49, "lightDay": "綠", "lightNight": "黃", "others": {"分心": "綠", "手機": "黃", "車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 10.7}, "10": {"name": "榮輝", "type": 300, "hours": 32.6, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 4}, "dpf": 0, "battery": 1.6}, "11": {"name": "家豪", "type": 700, "hours": 34.8, "dms": true, "minDay": 90, "minNight": 64, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "綠", "手機": "綠", "車道偏離": "紅", "急減速": "綠", "超速": "綠"}, "dtc": {"P2002": 6}, "dpf": 6, "battery": 2.5}, "12": {"name": "阿明", "type": 700, "hours": 160.9, "dms": true, "minDay": 27, "minNight": 19, "lightDay": "紅", "lightNight": "紅", "others": {"分心": "綠", "手機": "綠", "車道偏離": "紅", "急減速": "綠", "超速": "綠"}, "dtc": {"P2002": 24}, "dpf": 24, "battery": 0.4}, "13": {"name": "世昌", "type": 300, "hours": 26.1, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"急減速": "黃", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 0.8}, "14": {"name": "冠宇", "type": 500, "hours": 46.5, "dms": true, "minDay": 103, "minNight": 74, "lightDay": "綠", "lightNight": "綠", "others": {"分心": "綠", "手機": "綠", "車道偏離": "紅", "急減速": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 0.2}, "15": {"name": "建宏", "type": 500, "hours": 9.5, "dms": true, "minDay": 42, "minNight": 30, "lightDay": "黃", "lightNight": "黃", "others": {"分心": "綠", "手機": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 15.8}, "16": {"name": "國華", "type": 300, "hours": 64.1, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 5}, "dpf": 0, "battery": 3.0}, "17": {"name": "明輝", "type": 300, "hours": 51.8, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 3}, "dpf": 0, "battery": 0.4}, "18": {"name": "俊宏", "type": 300, "hours": 45.0, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "黃", "超速": "綠"}, "dtc": {"U3FFF": 3, "P2280": 1}, "dpf": 0, "battery": 1.8}, "19": {"name": "正雄", "type": 300, "hours": 43.8, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {}, "dpf": 0, "battery": 0.0}, "20": {"name": "信宏", "type": 300, "hours": 43.7, "dms": false, "minDay": null, "minNight": null, "lightDay": null, "lightNight": null, "others": {"車道偏離": "綠", "急減速": "綠", "超速": "綠"}, "dtc": {"U3FFF": 5}, "dpf": 0, "battery": 4.7}}, "backtest": {"綠": {"vehicle_days": 86, "fatigue_per_100h": 51.9}, "黃": {"vehicle_days": 28, "fatigue_per_100h": 179.5}, "紅": {"vehicle_days": 6, "fatigue_per_100h": 276.2}}};
+const D = DATA.drivers;
+const FLEET = DATA.fleetMin;
+
+const ic = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON = {
+  mic: ic('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
+  spark: ic('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'),
+  check: ic('<path d="m5 12 4.5 4.5L19 7"/>'),
+  back: ic('<path d="m15 6-6 6 6 6"/>'),
+  chev: ic('<path d="m9 6 6 6-6 6"/>'),
+  arrow: ic('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+};
+const L = { r: '紅', y: '黃', g: '綠', na: '灰' };
+const MEAN = { r: '需處理', y: '留意', g: '正常', na: '資料不足' };
+const chip = (c, txt, lg) => `<span class="chip ${c}${lg ? ' lg' : ''}"><span class="dot"></span>${txt ?? L[c] + '燈'}</span>`;
+const src = k => `<span class="src ${k === '真實' ? '' : k === '計算' ? 'calc' : 'mock'}">${k}</span>`;
+const n = x => `<span class="num">${x}</span>`;
+const hhmm = h => { const x = ((h % 24) + 24) % 24; const hh = Math.floor(x), mm = Math.round((x - hh) * 60); return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
+const RANK = { r: 3, na: 2, y: 1, g: 0 };
+const worst = arr => arr.reduce((a, b) => RANK[b] > RANK[a] ? b : a, 'g');
+const combine = cats => { const v = Object.values(cats); const w = worst(v); const ys = v.filter(x => x === 'y').length; return (w === 'y' && ys >= 2) ? 'r' : w; };
+
+// 明天的任務（模擬）。燈號依規格書規則判定；駕駛類只看疲勞（T1c），數字取自真實資料。
+function tasks(s) {
+  const wang = s.reassigned ? {
+    id: 'wang', row: '07', title: '王董・冷凍食品', route: '台中→高雄',
+    legs: [
+      { name: '去程', from: 16.5, to: 17.67, place: '彰化場站→台中', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 19.5, to: 23, place: '台中→高雄（國道1）', cats: { 駕駛: 'g', 車況: 'g', 環境: 'y', 任務: s.wangLate && !s.wangNotified ? 'y' : 'g' } },
+    ],
+  } : {
+    id: 'wang', row: '12', title: '王董・冷凍食品', route: '台中→高雄',
+    legs: [
+      { name: '去程', from: 16.5, to: 17.67, place: '彰化場站→台中', cats: { 駕駛: 'r', 車況: 'y', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 19.5, to: 23, place: '台中→高雄（國道1）', cats: { 駕駛: 'r', 車況: 'y', 環境: 'y', 任務: 'g' } },
+    ],
+  };
+  const dtc03 = s.zhiDtc && !s.done.svc03 ? 'y' : 'g';
+  const list = [
+    wang,
+    { id: 'jia', row: '11', title: '建材', route: '南投→台中港', legs: [
+      { name: '去程', from: 13, to: 14.17, place: '台中→南投', cats: { 駕駛: 'g', 車況: 'y', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: s.jiaEarly ? 16 : 16.67, to: s.jiaEarly ? 17.17 : 17.83, place: '南投→台中港（往西）', cats: { 駕駛: 'g', 車況: 'y', 環境: s.jiaEarly ? 'g' : 'y', 任務: 'g' } },
+    ] },
+    { id: 'zhi', row: '03', title: '夜配', route: '台中→台北', legs: [
+      { name: '去程', from: 21, to: 21.67, place: '場站→台中物流中心', cats: { 駕駛: 'y', 車況: dtc03, 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 22.5, to: 25.5, place: '台中→台北（國道3）', cats: { 駕駛: 'y', 車況: dtc03, 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'cheng', row: '08', title: '零件', route: '台中→彰濱', legs: [
+      { name: '去程', from: 9, to: 10, place: '場站→台中工業區', cats: { 駕駛: 'g', 車況: s.done.svc08 ? 'g' : 'y', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 10.5, to: 14, place: '台中→彰濱工業區', cats: { 駕駛: 'g', 車況: s.done.svc08 ? 'g' : 'y', 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'guan', row: '14', title: '飲料', route: '台中→苗栗', legs: [
+      { name: '去程', from: 6.5, to: 7.33, place: '場站→台中', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: s.done.guanOk ? 'g' : 'na' } },
+      { name: '載貨段', from: 8, to: 11, place: '台中→苗栗', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: s.done.guanOk ? 'g' : 'na' } },
+    ] },
+    { id: 'hua', row: '07', title: '包材', route: '台中市區', legs: [
+      { name: '去程', from: 7.5, to: 8.17, place: '場站→大里', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 8.5, to: 9.5, place: '大里→台中市區', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'zong', row: '05', title: '生鮮', route: '台中→新竹', legs: [
+      { name: '去程', from: 6, to: 6.67, place: '場站→台中', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 7, to: 11, place: '台中→新竹', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'jun', row: '09', title: '鋼材', route: '台中→嘉義', legs: [
+      { name: '去程', from: 13, to: 13.67, place: '場站→台中港', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 14, to: 17, place: '台中港→嘉義', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'wen', row: '02', title: '紙箱', route: '台中→雲林', legs: [
+      { name: '去程', from: 10, to: 10.5, place: '場站→太平', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 11, to: 15, place: '太平→雲林', cats: { 駕駛: 'g', 車況: 'g', 環境: 'g', 任務: 'g' } },
+    ] },
+    { id: 'guo', row: '16', title: '家具', route: '台中→彰化', legs: [
+      { name: '去程', from: 7, to: 7.67, place: '場站→台中', cats: { 駕駛: 'na-device', 車況: 'g', 環境: 'g', 任務: 'g' } },
+      { name: '載貨段', from: 8, to: 12, place: '台中→彰化', cats: { 駕駛: 'na-device', 車況: 'g', 環境: 'g', 任務: 'g' } },
+    ] },
+  ];
+  // 設備本來就沒有（300 系無 DMS）→「不適用」，不影響總燈
+  list.forEach(t => t.legs.forEach(l => { const c = { ...l.cats }; if (c.駕駛 === 'na-device') delete c.駕駛; l.light = combine(c); }));
+  list.forEach(t => { t.light = worst(t.legs.map(l => l.light)); });
+  return list;
+}
+
+const ROWS = ['12', '11', '03', '08', '14', '07', '05', '09', '02', '16'];
+const fresh = () => ({ view: 'web', tab: 'board', sel: 'wang', filter: null, reassigned: false, amingLeave: false, jiaEarly: false, zhiDtc: false, wangLate: false, wangNotified: false, voice: null, done: {}, confirmed: null, modified: false, guard: false, booked: {}, reply: null, reported: null, noteSent: false, snack: null });
+let state = fresh();
+const history = [];
+const H0 = 6, H1 = 26; // 06:00～次日 02:00
+const pct = h => ((h - H0) / (H1 - H0) * 100).toFixed(3) + '%';
+const catLight = (t, k) => worst(t.legs.map(l => l.cats[k] === 'na-device' ? 'g' : l.cats[k]));
+const queue = T => T.filter(t => t.light !== 'g').sort((a, b) => RANK[b.light] - RANK[a.light]);
+
+// 做之前先存一份，提示列的「復原」就回到這一份
+function act(mutate, snack, flashId, opts = {}) {
+  history.push(JSON.stringify({ ...state, snack: null }));
+  mutate();
+  // 確認後又改了班表：狀態改成「已修改・尚未重新推播」，可以重新確認
+  if (!opts.isConfirm && state.confirmed) { state.confirmed = null; state.modified = true; }
+  state.snack = { msg: snack, undo: opts.undo !== false };
+  render();
+  if (flashId) flash(flashId);
+}
+
+/* ---------- 頭家網頁 ---------- */
+function renderWeb() {
+  const el = document.getElementById('v-web');
+  el.innerHTML = `
+  <div class="window">
+    <div class="win-top">
+      <div class="logo"><span>HINO</span> iTRAQ</div>
+      <nav class="tabs" aria-label="頭家網頁分頁">
+        <button data-tab="board" aria-current="${state.tab === 'board' ? 'page' : 'false'}">明日排班</button>
+        <button data-tab="review" aria-current="${state.tab === 'review' ? 'page' : 'false'}">收車後回顧</button>
+      </nav>
+      <div class="who">鴻運貨運　王老闆 ${src('模擬')}</div>
+    </div>
+    <div class="win-body">${state.tab === 'board' ? boardHTML() : reviewHTML()}</div>
+  </div>`;
+  if (state.tab === 'board') focusSel();
+}
+
+function boardHTML() {
+  const T = tasks(state);
+  const Q = queue(T);
+  const cnt = c => T.filter(t => t.light === c).length;
+  const fbtn = c => `<button class="chip ${c}" data-filter="${c}" aria-pressed="${state.filter === c}" aria-label="只看${L[c]}燈（${MEAN[c]}），共 ${cnt(c)} 趟"><span class="dot"></span>${L[c]}・${MEAN[c]} ${n(cnt(c))}</button>`;
+  const axis = Array.from({ length: 10 }, (_, i) => H0 + i * 2).map(h => `<span class="${h === H0 ? 'first' : h === 24 ? 'nd' : ''}" style="left:${pct(h)}">${h === 24 ? '00:00 次日' : hhmm(h)}</span>`).join('');
+  const lanes = ROWS.map(no => {
+    const d = D[no];
+    const blocks = T.filter(t => t.row === no).map(t => {
+      const a = t.legs[0], b = t.legs[1], total = b.to - a.from;
+      const seg = l => `<span class="leg ${l.light}" style="width:${((l.to - l.from) / total * 100).toFixed(2)}%"><span class="lw"><i></i><span class="nm">${l.name}・</span>${L[l.light]}</span><span class="t">${hhmm(l.from)}–${hhmm(l.to)}</span></span>`;
+      const dim = state.filter && t.light !== state.filter ? ' dim' : '';
+      return `<button class="task${dim}" data-task="${t.id}" aria-current="${state.sel === t.id}" style="left:${pct(a.from)};width:${(total / (H1 - H0) * 100).toFixed(3)}%" aria-label="${t.title} ${t.route}：${a.name}${L[a.light]}燈、${b.name}${L[b.light]}燈，總燈號${L[t.light]}燈">${seg(a)}<span class="gap" style="width:${((b.from - a.to) / total * 100).toFixed(2)}%" aria-hidden="true"></span>${seg(b)}</button>`;
+    }).join('');
+    return `<div class="tt-row"><div class="tt-who"><span class="n">${n(no)}<span>${d.name}</span></span><span class="m">${d.type} 系${d.dms ? '' : '・無 DMS'}</span>${no === '12' && state.amingLeave ? '<span class="leave">10/2 請假</span>' : ''}</div><div class="tt-lane"><span class="night" style="left:${pct(22)};right:0"></span><span class="midnight" style="left:${pct(24)}"></span>${blocks}</div></div>`;
+  }).join('');
+  const reds = T.filter(t => t.light === 'r').length;
+  const status = state.confirmed ? `<span class="status done">${ICON.check.replace('<svg', '<svg width="14" height="14"')}<span>已確認 ${n(state.confirmed)}・已推播給司機</span></span>` : state.modified ? `<span class="status mod">已修改・尚未重新推播</span>` : `<span class="status">草稿・尚未確認</span>`;
+  const guard = state.guard ? `<div class="guard" role="alert"><b>還有 ${reds} 趟紅燈還沒處理。</b><span>確認後會直接推播給司機。</span><span class="sp"></span><button class="btn btn-navy" data-act="guardFix">先處理下一趟</button><button class="btn btn-text" data-act="confirmAnyway">仍要確認</button></div>` : '';
+  const trucks = new Set(T.map(t => t.row)).size;
+  return `
+  <div class="head">
+    <div><h1>明日排班</h1><div class="sub"><span><span class="num">10/2（四）</span>・${n(trucks)} 台車有任務</span>${src('模擬')}${status}</div></div>
+    <div class="filters" aria-label="依燈號篩選"><span class="lbl">需處理<b>${Q.length}</b>趟</span>${fbtn('r')}${fbtn('na')}${fbtn('y')}${fbtn('g')}</div>
+    <div class="acts">
+      <button class="btn btn-ghost" data-act="draft">${ICON.spark}AI 建議草稿</button>
+      <button class="btn btn-ghost" data-act="voice">${ICON.mic}用講的改排班</button>
+      <button class="btn btn-navy" data-act="confirm" ${state.confirmed ? 'disabled' : ''}>${ICON.check}${state.confirmed ? '已確認' : state.modified ? '重新確認並推播' : '確認班表'}</button>
+    </div>
+  </div>
+  ${guard}
+  <div class="layout">
+    <div class="card tt-card">
+      <div class="tt-legend"><span class="nightsw"><i></i>夜間 22:00 後</span><span>每趟分「去程」與「載貨段」各自亮燈，中間斜紋是裝貨</span>${state.filter ? `<span class="filtering">篩選中：只看${L[state.filter]}燈<button class="btn btn-text" data-filter="${state.filter}">清除篩選</button></span>` : '<span>點上方燈號可以篩選</span>'}</div>
+      <div class="tt-scroll"><div class="tt">
+        <div class="tt-row"><div class="tt-who"><span class="m">車號／主駕</span></div><div class="tt-axis">${axis}</div></div>
+        ${lanes}
+      </div></div>
+    </div>
+    <aside class="card side" aria-live="polite">${state.voice ? voiceHTML() : state.sel ? detailHTML(T.find(t => t.id === state.sel), T) : queueHTML(T)}</aside>
+  </div>
+  ${snackHTML()}`;
+}
+
+function queueHTML(T) {
+  const Q = queue(T).filter(t => !state.filter || t.light === state.filter);
+  if (state.filter === 'g') return `<div><h2>綠燈趟次</h2><p class="sub">${n(T.filter(t => t.light === 'g').length)} 趟四類都正常，不需要處理。</p></div>`;
+  if (!Q.length) return `<div><h2>待處理清單</h2></div><div class="empty"><b>明天的紅、灰、黃燈都處理完了。</b><span>確認班表後會推播給司機；出發前 2 小時、30 分鐘自動複查，變紅才通知你。</span>${state.confirmed ? '' : `<button class="btn btn-navy" data-act="confirm">${ICON.check}${state.modified ? '重新確認並推播' : '確認班表'}</button>`}</div>`;
+  return `<div><h2>待處理清單</h2><p class="sub">依燈號排序：紅 → 灰 → 黃。點一趟開始處理。</p></div>
+  <div class="queue">${Q.map(t => `<button class="qitem" data-task="${t.id}">${chip(t.light)}<span><span class="t1">${t.row} ${D[t.row].name}・${t.title} ${t.route}</span><br><span class="t2">${summary(t)}</span></span>${ICON.chev}</button>`).join('')}</div>`;
+}
+
+// 一句話說明：哪幾類不是綠燈
+function summary(t) {
+  const d = D[t.row];
+  const parts = [];
+  const c = k => catLight(t, k);
+  if (c('駕駛') !== 'g') parts.push(`${d.name}疲勞${L[c('駕駛')]}`);
+  if (c('車況') !== 'g') parts.push(`${t.row} 號車車況${L[c('車況')]}`);
+  if (c('環境') !== 'g') parts.push(t.id === 'jia' ? '夕陽正對' : '預報大雨');
+  if (c('任務') === 'na') parts.push('工時資料未更新');
+  else if (c('任務') !== 'g') parts.push('時窗太緊');
+  return parts.join('＋') || '四類都正常';
+}
+
+function catRows(t) {
+  const d = D[t.row];
+  const isWang = t.id === 'wang';
+  const why = {
+    駕駛: () => {
+      if (!d.dms) return { c: 'na-device', html: `此車沒有 DMS 鏡頭，疲勞不適用（不影響總燈號）` };
+      const night = t.legs.some(l => l.to > 22);
+      const c = catLight(t, '駕駛');
+      const others = Object.entries(d.others).filter(([, v]) => v !== '綠').map(([k]) => k);
+      const freq = night
+        ? `${d.name}白天約<b>每 ${n(d.minDay)} 分鐘</b>、入夜後約<b>每 ${n(d.minNight)} 分鐘</b>出現一次打瞌睡跡象（一般司機白天約每 ${n(FLEET)} 分鐘、夜間約每 ${n(Math.round(FLEET / 1.4))} 分鐘）${src('計算')}`
+        : `${d.name}約<b>每 ${n(d.minDay)} 分鐘</b>出現一次打瞌睡跡象（一般司機約每 ${n(FLEET)} 分鐘）${src('計算')}`;
+      const actTxt = c === 'r' ? '建議換人' : c === 'y' ? '建議出發前休息 30 分鐘，或改派日夜都穩定的司機' : '';
+      return { c, html: `<span>${freq}</span>${actTxt ? `<span class="act">→ ${actTxt}</span>` : ''}${others.length && c !== 'g' ? `<span class="ref">其他偏多的跡象：${others.join('、')}（只供參考，不決定燈號）${src('真實')}</span>` : ''}` };
+    },
+    車況: () => {
+      const c = catLight(t, '車況');
+      if (c === 'g') return { c, html: '' };
+      if (t.id === 'zhi') return { c, html: `<span>出發前複查：18:40 新跳出柴油微粒濾網警示 P2002 ${src('模擬')}；嚴重度：中 ${src('模擬')}</span><span class="act">→ 建議出發前到服務廠夜間時段檢查</span>` };
+      const codes = Object.entries(d.dtc).filter(([k]) => k !== 'U3FFF');
+      return { c, html: `<span>柴油微粒濾網警示 ${codes.map(([k, v]) => `${k} ×${n(v)}`).join('、')} ${src('真實')}；嚴重度：中 ${src('模擬')}；這類警示可能讓長途時動力下降</span><span class="act">→ 建議出發前進廠檢查</span>` };
+    },
+    環境: () => {
+      const c = catLight(t, '環境');
+      if (isWang && c === 'y') return { c, html: `<span>高雄 21–24 時預報大雨（時雨量 ≥40mm，氣象署分級）${src('模擬')}</span><span class="act">→ 建議 22:00 前後在新營服務區休息 15 分鐘</span>` };
+      if (t.id === 'jia' && c === 'y') return { c, html: `<span>${n('17:10–17:40')} 往西開，夕陽正對擋風玻璃約 30 分鐘 ${src('模擬')}</span><span class="act">→ 建議提早 40 分鐘出發</span>` };
+      return { c, html: '' };
+    },
+    任務: () => {
+      const c = catLight(t, '任務');
+      if (c === 'y') return { c, html: `<span>阿華回報塞車，延誤約 20 分鐘 ${src('模擬')}，預計 ${n('23:20')} 抵達，離王董時窗 ${n('23:30')} 只剩 10 分鐘</span><span class="act">→ 建議先通知王董可能延後，請阿華不要趕路</span>` };
+      if (c === 'na') return { c, html: `<span>冠宇昨日的工時資料沒有更新，無法確認兩班之間是否休滿 10 小時 ${src('模擬')}</span><span class="act">→ 請先打電話確認冠宇昨天幾點收車</span>` };
+      return { c, html: '' };
+    },
+  };
+  const rows = ['駕駛', '車況', '環境', '任務'].map(k => ({ k, ...why[k]() }));
+  const bad = rows.filter(r => r.c !== 'g' && r.c !== 'na-device');
+  const ok = rows.filter(r => r.c === 'g' || r.c === 'na-device');
+  const okTxt = ok.length ? `<div class="cat ok">${ok.map(r => r.c === 'na-device' ? `${r.k}：此車無 DMS，疲勞不適用` : `${r.k}正常`).join('　')}</div>` : '';
+  return bad.map(r => `<div class="cat"><span class="k">${r.k}</span><div class="body">${chip(r.c)}${r.html}</div></div>`).join('') + okTxt;
+}
+
+function altsFor(t) {
+  const hua = D['07'], z = D['05'];
+  if (t.id === 'wang' && !state.reassigned) return [
+    { key: 'swap', res: 'y', what: '改派 07 號車　阿華', btn: '改派阿華', cost: `阿華夜間約每 ${n(hua.minNight)} 分鐘一次打瞌睡跡象 ${src('計算')}；下午原本空班，不延誤 ${src('模擬')}。仍有大雨，會是黃燈。` },
+    { key: 'svc12', res: 'r', what: '12 號車先進廠檢查', btn: '預約明早 08:00', cost: `台中服務廠明早 08:00 有空檔 ${src('模擬')}。車況轉綠，但駕駛仍紅。`, weak: true },
+    { key: 'rest', res: 'r', what: '阿明出發前休息 30 分鐘', cost: `個人基準不會因一次休息改變，仍紅；延後 30 分鐘抵達 ${src('模擬')}。`, off: true },
+    { key: 'late', res: 'r', what: '延後 1 小時出發', cost: `會錯過王董 ${n('23:30')} 時窗 ${src('模擬')}；駕駛仍紅。`, off: true },
+  ];
+  if (t.id === 'wang' && state.wangLate && !state.wangNotified) return [
+    { key: 'notify', res: 'y', what: '通知王董可能延後到 23:40', btn: '傳訊息給王董', cost: `王董同意延後，時窗就不再緊；仍有大雨，會是黃燈 ${src('模擬')}。` },
+  ];
+  if (t.id === 'jia' && !state.jiaEarly) return [
+    { key: 'early', res: 'y', what: '載貨段提早 40 分鐘出發', btn: '提早到 16:00 出發', cost: `避開夕陽；需請客戶提早收貨 ${src('模擬')}。車況仍黃，會是黃燈。` },
+    { key: 'route', res: 'y', what: '改走台 74 線南段', cost: `多 12 分鐘，往西路段縮短 ${src('模擬')}。仍兩類黃，維持紅燈。`, off: true },
+  ];
+  if (t.id === 'zhi') {
+    const list = [];
+    if (state.zhiDtc && !state.done.svc03) list.push({ key: 'svc03', res: 'y', what: '03 號車出發前到服務廠檢查', btn: '預約今晚 19:30 檢查', cost: `台中服務廠今晚 19:30 夜間時段有空檔 ${src('模擬')}；車況轉綠，駕駛仍黃。` });
+    if (!state.done.zhiRest) list.push({ key: 'zhiRest', res: 'y', what: '01:00 在關西服務區休息 15 分鐘', btn: '排入休息', cost: `晚 15 分鐘抵達台北 ${src('模擬')}；夜間疲勞仍黃。`, weak: list.length > 0 });
+    list.push({ key: 'zhiSwap', res: 'y', what: '改派 05 號車　宗翰', cost: `宗翰夜間約每 ${n(z.minNight)} 分鐘一次 ${src('計算')}，但早上已排 5 小時，當日累計 9 小時（任務黃）${src('模擬')}。`, off: true });
+    return list;
+  }
+  if (t.id === 'cheng' && !state.done.svc08) return [
+    { key: 'svc08', res: 'g', what: '08 號車今晚先進廠檢查', btn: '預約今晚 19:00 檢查', cost: `台中服務廠今晚 19:00 夜間時段 ${src('模擬')}；開過去約 30 分鐘，明早照常出車。` },
+  ];
+  if (t.id === 'guan' && !state.done.guanOk) return [
+    { key: 'guanOk', res: 'g', what: '已打電話確認：冠宇昨天 18:00 收車', btn: '已確認，休息超過 10 小時', cost: `由頭家手動確認後，工時檢查通過 ${src('模擬')}。` },
+  ];
+  return [];
+}
+
+function detailHTML(t, T) {
+  if (!t) return queueHTML(T);
+  const d = D[t.row];
+  const alts = altsFor(t);
+  const good = alts.filter(a => !a.off);
+  const [top, ...rest] = good;
+  const other = rest;
+  const off = alts.filter(a => a.off);
+  const legs = t.legs.map(l => `<div class="legbox">${chip(l.light, `${l.name}・${L[l.light]}`)}<span class="tm">${hhmm(l.from)}–${hhmm(l.to)}</span><span>${l.place}</span></div>`).join('');
+  const optCard = (a, ghost) => `<div class="opt"><div class="row1"><span class="what">${a.what}</span>${chip(a.res, '→ ' + L[a.res])}</div><span class="cost">${a.cost}</span>${a.off ? '' : `<div><button class="btn ${ghost ? 'btn-ghost' : 'btn-primary'}" data-alt="${a.key}">${a.btn}</button></div>`}</div>`;
+  const rec = top ? `<div class="rec">
+      <div class="res"><b style="color:var(--navy-800);font-size:var(--fs-md)">建議：${top.what}</b>${chip(top.res, '處理後 → ' + L[top.res] + '燈')}</div>
+      <span class="cost" style="font-size:var(--fs-sm);color:var(--slate-600)">${top.cost}</span>
+      <button class="btn btn-primary block" data-alt="${top.key}">${top.btn}</button>
+      ${top.res !== 'g' && !other.length && t.id === 'zhi' ? '<span class="small">這一趟怎麼排都是黃燈，需要你決定是否照常出車。</span>' : ''}
+    </div>` : '';
+  const more = (other.length || off.length) ? `<details class="more"><summary>${ICON.chev}其他做法（${other.length + off.length}，依安全排序）</summary><div class="opts">${other.map(a => optCard(a, true)).join('')}${off.map(a => `<div class="opt"><div class="row1"><span class="what">${a.what}</span>${chip(a.res, '→ ' + L[a.res])}</div><span class="cost">不建議：${a.cost}</span></div>`).join('')}</div></details>` : '';
+  const after = t.id === 'wang' && state.reassigned && !state.booked.svc12 ? `<div class="opt"><div class="row1"><span class="what">12 號車明天空出來，可以進廠</span></div><span class="cost">柴油微粒濾網警示 P2002 ×${n(D['12'].dpf)} ${src('真實')}</span><div><button class="btn btn-ghost" data-alt="svc12">預約明早 08:00</button></div></div>` : '';
+  const nextT = queue(T).find(x => x.id !== t.id);
+  const next = nextT ? `<button class="next" data-task="${nextT.id}"><span>下一趟待處理：${nextT.row} ${D[nextT.row].name}・${nextT.title}（${L[nextT.light]}燈）</span>${ICON.arrow}</button>` : `<button class="next" data-task="">待處理都處理完了，回到清單 ${ICON.arrow}</button>`;
+  const twoY = t.legs.some(l => { const v = Object.values(l.cats).filter(x => x === 'y').length; return v >= 2 && !Object.values(l.cats).includes('r'); });
+  return `
+    <button class="back" data-task="">${ICON.back}待處理清單</button>
+    <div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1"><h2>${t.title}　${t.route}</h2><p class="sub">${n(t.row)} 號車・${d.name}　${src('模擬')}</p></div>${chip(t.light, L[t.light] + '燈', true)}</div>
+    <div class="why ${t.light}">${t.light === 'g' ? '四類都正常，可以照常出車。' : `<b>為什麼是${L[t.light]}燈：</b>${summary(t)}${twoY ? '（任兩類同時黃，升為紅）' : ''}`}</div>
+    ${rec}${after}${more}
+    <div class="legs2">${legs}</div>
+    ${t.id === 'wang' ? deadlineTL(t) : ''}
+    <div><h3 class="h3">四類原因</h3><div class="cats" style="margin-top:6px">${catRows(t)}</div></div>
+    ${t.light !== 'g' || queue(T).length ? next : ''}`;
+}
+
+// 王董那趟：預計抵達點＋期限紅虛線（yoxi 時間軸語彙）
+function deadlineTL(t) {
+  const a = 19, b = 24, x = h => ((h - a) / (b - a) * 100).toFixed(2) + '%';
+  const late = state.wangLate && !state.wangNotified;
+  const eta = late ? 23 + 20 / 60 : 23;
+  const due = state.wangNotified ? 23 + 40 / 60 : 23.5;
+  const col = { g: 'var(--go)', y: 'var(--warn)', r: 'var(--stop)', na: 'var(--na)' }[t.legs[1].light];
+  return `<div><h3 class="h3">載貨段與客戶時窗</h3>
+    <div class="tl" role="img" aria-label="載貨段 19:30 出發，預計 ${hhmm(eta)} 抵達高雄，王董期限 ${hhmm(due)}">
+      <span class="tl-track"></span><span class="tl-band" style="left:${x(19.5)};width:calc(${x(eta)} - ${x(19.5)});background:${col}"></span>
+      <span class="tl-dot" style="left:${x(eta)};background:${col}"></span>
+      <span class="tl-deadline" style="left:${x(due)}"><span>期限 ${hhmm(due)}</span></span>
+      <span class="tl-ticks"><span style="left:0">19:00</span><span style="left:${x(21)}">21:00</span><span style="left:${x(23)}">23:00</span></span>
+    </div>
+    <p class="small">預計 ${n(hhmm(eta))} 抵達 ${src('模擬')}${late ? '；塞車後離期限只剩 10 分鐘' : ''}</p></div>`;
+}
+
+function voiceHTML() {
+  const v = state.voice;
+  return `
+    <button class="back" data-act="voiceClose">${ICON.back}返回</button>
+    <h2>用講的改排班</h2>
+    ${v === 'listening' ? `<div class="said"><span class="lbl">正在聽</span><span class="listening"><i></i>請說出要改的事，例如誰請假、哪一趟幾點前要到</span></div><button class="btn btn-ghost block" data-act="voiceHeard">${ICON.mic}（示範）說完了</button>` : ''}
+    ${v === 'confirming' ? `<div class="said"><span class="lbl">你說</span>「阿明明天請假，王董那趟一定要 23:30 前到。」</div>
+      <div class="ai-note">${ICON.spark}<div>我理解為：<ol><li>12 號車阿明 10/2 不排班</li><li>王董那趟最晚 <span class="num">23:30</span> 抵達高雄</li></ol><span style="display:block;margin-top:6px">對嗎？確認後才會交給排班引擎重排，仍會遵守新法工時。</span></div></div>
+      <div class="row-btns"><button class="btn btn-primary" data-voice="yes">對，重排</button><button class="btn btn-ghost" data-voice="no">不對，重說</button></div>` : ''}`;
+}
+
+function snackHTML() {
+  if (!state.snack) return '';
+  const sn = typeof state.snack === 'string' ? { msg: state.snack, undo: false } : state.snack;
+  return `<div class="snack" role="status"><p>${sn.msg}</p>${sn.undo && history.length ? '<button class="btn btn-text" data-act="undo">復原</button>' : ''}<button class="btn btn-text" data-act="snackClose" aria-label="關閉提示">知道了</button></div>`;
+}
+
+/* ---------- 收車後回顧 ---------- */
+function reviewHTML() {
+  const bt = DATA.backtest;
+  const max = 300, H = 170, bw = 72;
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v);
+  const bars = [['綠', 'g', '--go'], ['黃', 'y', '--warn'], ['紅', 'r', '--stop']].map(([nm, c, col], i) => {
+    const v = bt[nm], h = v.fatigue_per_100h / max * H, x = 50 + i * 110;
+    return `<rect x="${x}" y="${24 + H - h}" width="${bw}" height="${h}" rx="8" fill="${css(col)}"/><text x="${x + bw / 2}" y="${16 + H - h}" text-anchor="middle" font-size="15" font-weight="700" style="fill:var(--navy-800)">${Math.round(v.fatigue_per_100h)}</text><text x="${x + bw / 2}" y="${H + 44}" text-anchor="middle" font-size="12" style="fill:var(--slate-600)">${nm}燈・${v.vehicle_days} 車日</text>`;
+  }).join('');
+  const m = D['12'], z = D['06'];
+  return `
+  <div class="head"><div><h1>收車後回顧</h1><div class="sub"><span><span class="num">10/2（四）</span>收車後・今天的結果會改變 10/3 的燈號</span></div></div></div>
+  <div class="review">
+    <div class="card pad">
+      <h2>預估 vs 實際</h2>
+      <div class="tbl-scroll"><table class="t"><thead><tr><th>車／司機・任務</th><th>出車前</th><th>實際</th><th>對 10/3 的影響</th></tr></thead><tbody>
+        <tr><td>07 阿華・王董</td><td>${chip('y')}</td><td>3.5 小時 2 次打瞌睡跡象；塞車約 20 分鐘，${n('23:25')} 抵達 ${src('模擬')}</td><td>塞車記為非司機因素，阿華的基準不受影響</td></tr>
+        <tr><td>12 阿明</td><td>請假</td><td>未出車</td><td>10/3 先排白天短程</td></tr>
+        <tr><td>03 志豪・夜配</td><td>${chip('y')}</td><td>3 小時 4 次；01:00 有休息 ${src('模擬')}</td><td>10/3 夜配仍黃</td></tr>
+        <tr><td>11 家豪・建材</td><td>${chip('y')}</td><td>提早出發避開夕陽，0 次 ${src('模擬')}</td><td>不變</td></tr>
+      </tbody></table></div>
+      <p class="small">今天 5 個建議，採用 3 個，維持原案 2 個（附理由）${src('模擬')}</p>
+      <h2 style="margin-top:6px">燈號準不準</h2>
+      <svg class="chart" viewBox="0 0 420 240" role="img" aria-label="回測：綠燈車日每 100 小時 ${Math.round(bt['綠'].fatigue_per_100h)} 次、黃燈 ${Math.round(bt['黃'].fatigue_per_100h)} 次、紅燈 ${Math.round(bt['紅'].fatigue_per_100h)} 次" style="width:100%;max-width:440px">
+        <line x1="36" y1="${24 + H}" x2="400" y2="${24 + H}" style="stroke:var(--line-strong)"/>${bars}
+      </svg>
+      <p class="small">回測：出車前亮的燈號 vs 當天實際打瞌睡跡象（次／100 駕駛小時）。2025 年 10 輛有 DMS 的真實 HINO 車輛、24 個評分日；每天只用之前的資料亮燈 ${src('計算')}</p>
+    </div>
+    <div style="display:grid;gap:16px">
+      <div class="card pad">
+        <h2>需要進廠的車</h2>
+        <div class="svc-item"><span class="h">12 號車　柴油微粒濾網警示 ×${n(m.dpf)}</span><span>${Object.entries(m.dtc).map(([k, v]) => `${k} ×${n(v)}`).join('、')} ${src('真實')}；嚴重度：中 ${src('模擬')}；這類警示可能讓長途時動力下降</span>
+          <span class="ai-by">${ICON.spark}生成式 AI 工單草稿</span><span class="ai-text">P2002 柴油微粒濾網效率低於門檻，近期重複出現，多在夜間長途時發生。</span>
+          <button class="btn ${state.booked.r12 ? 'btn-ghost' : 'btn-primary'}" data-book="r12" ${state.booked.r12 ? 'disabled' : ''}>${state.booked.r12 ? '已預約 10/3 08:00 台中服務廠' : '預約 HINO 服務廠'}</button></div>
+        <div class="svc-item"><span class="h">06 號車　請服務廠確認</span><span>電瓶電壓異常時間占 ${n(z.battery + '%')}（同車型中位約 ${n('1.7%')}）；另有原廠通訊碼 U3FFF ×${n(z.dtc.U3FFF)}，多在引擎未運轉時出現，意義待服務廠確認 ${src('真實')}</span>
+          <button class="btn btn-ghost" data-book="r06" ${state.booked.r06 ? 'disabled' : ''}>${state.booked.r06 ? '已送出確認請求' : '請服務廠確認'}</button></div>
+      </div>
+      <div class="card pad">
+        <h2>每日摘要</h2>
+        <span class="ai-by">${ICON.spark}生成式 AI 撰寫</span>
+        <p class="ai-text">今天 10 趟中 3 趟在出車前改派、調時間或安排檢查；出車後只有王董那趟因塞車轉紅，已通知王董延後。阿華的塞車延誤記為非司機因素。阿明 10/3 先排白天短程。${src('模擬')}</p>
+      </div>
+    </div>
+  </div>
+  ${snackHTML()}`;
+}
+
+/* ---------- 手機 ---------- */
+const sbar = (t, dark) => `<div class="statusbar"><span class="num">${t}</span><span><svg width="56" height="12" viewBox="0 0 56 12" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="28" y="1" width="24" height="10" rx="3" fill="none" stroke="currentColor"/><rect x="30" y="3" width="17" height="6" rx="1.5"/></svg></span></div>`;
+const device = (inner, cap, dark) => `<div class="ph-col"><div class="device"><div class="screen${dark ? ' dark' : ''}"><div class="island"></div>${inner}<span class="mark">概念原型・示意資料</span></div></div><span class="ph-cap">${cap}</span></div>`;
+
+function renderBossPhone() {
+  document.getElementById('v-bossPhone').innerHTML = `<div class="phones">${device(`${sbar('22:42', true)}
+    <div class="lock-clock"><div class="d">10月2日 星期四</div><div class="c">22:42</div></div>
+    <div class="notis">
+      <button class="noti" data-goto="zhi"><span class="h"><span class="ic" aria-hidden="true">H</span>iTRAQ・出發前複查<span class="tm">19:00</span></span><span class="b1">03 號車志豪這趟由黃轉紅</span>${chip('r', '紅燈')}<span class="b2">18:40 新跳出柴油微粒濾網警示 ${src('模擬')}，加上夜間疲勞黃，兩類同時黃。點開處理。</span></button>
+      <button class="noti" data-goto="wang"><span class="h"><span class="ic" aria-hidden="true">H</span>iTRAQ・行駛中<span class="tm">22:40</span></span><span class="b1">07 號車阿華這趟由黃轉紅</span>${chip('r', '紅燈')}<span class="b2">阿華回報塞車，延誤約 20 分鐘，離王董時窗只剩 10 分鐘 ${src('模擬')}；加上大雨，兩類同時黃。</span></button>
+      <p class="hint">只有「變紅」才通知；沒變就不打擾</p>
+    </div>`, '頭家手機：點通知會打開網頁的那一趟', true)}</div>`;
+}
+
+function renderDriver() {
+  const hua = D['07'];
+  const card = `${sbar('15:50')}
+    <div class="app">
+      <h3 class="app-title">今天的行前卡</h3>
+      <div class="card">
+        <b style="font-size:var(--fs-lg)">王董・冷凍食品　台中→高雄</b>
+        <span class="field-k" style="margin-top:-6px">07 號車・阿華 ${src('模擬')}</span>
+        <div class="legs2"><div class="legbox">${chip('g', '去程・綠')}<span class="tm">16:30–17:40</span></div><div class="legbox">${chip('y', '載貨段・黃')}<span class="tm">19:30–23:00</span></div></div>
+      </div>
+      <div class="card">
+        <span class="field-k">為什麼載貨段是黃燈</span>
+        <span style="font-size:var(--fs-sm);color:var(--slate-600)">高雄 21–24 時預報大雨 ${src('模擬')}；22:00 後入夜，你夜間約每 ${n(hua.minNight)} 分鐘出現一次打瞌睡跡象，跟一般司機差不多 ${src('計算')}</span>
+        <span class="field-k" style="margin-top:4px">建議</span>
+        <b>22:00 前後在新營服務區休息 15 分鐘</b>
+      </div>
+      <label for="drv-note" class="field-k" style="padding-left:4px">想跟頭家說的話</label>
+      <textarea id="drv-note" placeholder="例：昨晚睡得很好"></textarea>
+      ${state.noteSent ? `<div class="ok">${ICON.check}<span>已送出，頭家看得到</span></div>` : `<button class="btn btn-primary block" data-act="note">送出給頭家</button>`}
+    </div>`;
+  const drive = `${sbar('21:40', true)}
+    <div class="drive">
+      <div class="eta"><span>距離高雄<b>142 km</b>${src('模擬')}</span><span style="text-align:right">預計抵達<b>23:00</b>${src('模擬')}</span></div>
+      <div>${chip('dk', '載貨段・黃燈')}</div>
+      <div class="voicecard"><span class="who"><i></i>iTRAQ 語音提醒（行駛中只用聽的）</span><q>22:00 就要進入夜間。20 分鐘後到新營服務區，建議休息 15 分鐘。</q><span class="note">新營服務區距離與時間 ${src('模擬')}</span>
+        <div class="say" aria-label="司機用說的回應">
+          <button data-reply="我要休息">${ICON.mic}說「我要休息」</button><button data-reply="我還可以">${ICON.mic}說「我還可以」</button>
+        </div>
+      </div>
+      ${state.reply ? `<div class="ok">${ICON.check}<span>已記錄「${state.reply}」${state.reply === '我還可以' ? '，頭家畫面會標示未採納' : '，休息後燈號重算'}</span></div>` : ''}
+      <p class="note">手機離線辨識固定指令（國語、台語）；聽不懂且有網路時，才由雲端生成式 AI 歸類到同樣的類別。</p>
+    </div>`;
+  const report = `${sbar('22:38')}
+    <div class="app">
+      <h3 class="app-title">回報狀況</h3>
+      <p style="font-size:var(--fs-sm);color:var(--slate-600);padding:0 4px">按鈕只在停車時出現。行駛中請直接說「塞車」「等卸貨」。</p>
+      <div class="report">
+        <button data-report="塞車">塞車</button><button data-report="等卸貨">等卸貨</button><button data-report="我要休息">我要休息</button>
+      </div>
+      ${state.reported ? `<div class="ok">${ICON.check}<span>收到，記錄為「${state.reported}」。地點：國道 1 號台南段（GPS 自動帶入）</span></div>` : ''}
+    </div>`;
+  document.getElementById('v-driver').innerHTML = `<div class="phones">${device(card, '出發前（停車時）看行前卡')}${device(drive, '行駛中：語音提醒', true)}${device(report, '停車時：大按鈕回報')}</div>`;
+}
+
+// 文字裡的時間、分鐘數、日期一律換成 Montserrat 等寬數字（yoxi「數字換字體」）
+function numify(root) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: nd => nd.parentElement.closest('.num, svg, textarea, script, style, .src, .tt-axis, .tl, .leg, .statusbar, .lock-clock') ? NodeFilter.FILTER_REJECT : /\d/.test(nd.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(nd => {
+    const frag = document.createDocumentFragment();
+    nd.nodeValue.split(/(\d[\d:/.%–-]*\d|\d)/).forEach((part, i) => {
+      if (!part) return;
+      if (i % 2) { const sp = document.createElement('span'); sp.className = 'num'; sp.textContent = part; frag.appendChild(sp); } else frag.appendChild(document.createTextNode(part));
+    });
+    nd.replaceWith(frag);
+  });
+  // 中文與數字之間不留空格：字型換成 Montserrat 後，原本的空格會變成明顯的縫
+  const CJK = /[\u3000-\u9fff\uff00-\uffef]/;
+  root.querySelectorAll('.num').forEach(el => {
+    const p = el.previousSibling, q = el.nextSibling;
+    if (p && p.nodeType === 3 && /\s$/.test(p.nodeValue) && CJK.test(p.nodeValue.trimEnd().slice(-1))) p.nodeValue = p.nodeValue.trimEnd();
+    if (q && q.nodeType === 3 && /^\s/.test(q.nodeValue) && CJK.test(q.nodeValue.trimStart().charAt(0))) q.nodeValue = q.nodeValue.trimStart();
+  });
+}
+
+function render() {
+  ['web', 'bossPhone', 'driver'].forEach(v => { document.getElementById('v-' + v).hidden = state.view !== v; });
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+  if (state.view === 'web') renderWeb();
+  if (state.view === 'bossPhone') renderBossPhone();
+  if (state.view === 'driver') renderDriver();
+  numify(document.querySelector('main'));
+}
+
+function focusSel() { const sc = document.querySelector('.tt-scroll'); const el = state.sel && document.querySelector(`.task[data-task="${state.sel}"]`); if (sc && el && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, el.offsetLeft - 140); }
+function flash(id) { requestAnimationFrame(() => { const el = document.querySelector(`.task[data-task="${id}"]`); if (el) el.classList.add('flash'); }); }
+
+const ALT = {
+  swap: () => act(() => { state.reassigned = true; }, '已改派 07 號車阿華；王董那趟由紅轉黃（仍有大雨）。', 'wang'),
+  svc12: () => act(() => { state.booked.svc12 = true; }, '已預約 12 號車明早 08:00 台中服務廠檢查。'),
+  notify: () => act(() => { state.wangNotified = true; }, '已傳訊息給王董：可能延後到 23:40。王董那趟回到黃燈。', 'wang'),
+  early: () => act(() => { state.jiaEarly = true; }, '家豪的載貨段提早到 16:00 出發，避開夕陽；由紅轉黃（車況仍黃）。', 'jia'),
+  svc03: () => act(() => { state.done.svc03 = true; }, '已預約 03 號車今晚 19:30 檢查；志豪這趟由紅回到黃（夜間疲勞仍黃）。', 'zhi'),
+  zhiRest: () => act(() => { state.done.zhiRest = true; }, '已排入：志豪 01:00 在關西服務區休息 15 分鐘（仍黃）。', 'zhi'),
+  svc08: () => act(() => { state.done.svc08 = true; }, '已預約 08 號車今晚 19:00 檢查；承恩這趟轉綠。', 'cheng'),
+  guanOk: () => act(() => { state.done.guanOk = true; }, '已記錄：冠宇休息超過 10 小時；這趟轉綠。', 'guan'),
+};
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const ds = b.dataset;
+  if (ds.view) { state.view = ds.view; state.snack = null; render(); return; }
+  if (ds.tab) { state.tab = ds.tab; state.snack = null; render(); return; }
+  if (ds.filter) { state.filter = state.filter === ds.filter ? null : ds.filter; render(); return; }
+  if ('task' in ds) { state.sel = ds.task || null; state.voice = null; render(); return; }
+  if (ds.goto) { if (ds.goto === 'zhi') state.zhiDtc = true; if (ds.goto === 'wang') { state.wangLate = true; state.reassigned = true; } state.view = 'web'; state.tab = 'board'; state.sel = ds.goto; state.voice = null; state.snack = null; state.confirmed = state.confirmed || '10/1 21:05'; render(); return; }
+  if (ds.alt) { ALT[ds.alt]?.(); return; }
+  if (ds.book) { act(() => { state.booked[ds.book] = true; }, ds.book === 'r12' ? '已預約 12 號車 10/3 08:00 台中服務廠。' : '已送出確認請求給台中服務廠。'); return; }
+  if (ds.reply) { state.reply = ds.reply; render(); return; }
+  if (ds.report) { state.reported = ds.report; render(); return; }
+  if (ds.voice === 'yes') { act(() => { state.voice = null; state.reassigned = true; state.amingLeave = true; state.sel = 'wang'; }, '已依你的話重排：阿明 10/2 不排班，王董那趟改派 07 號車阿華，預計 23:00 抵達。', 'wang'); return; }
+  if (ds.voice === 'no') { state.voice = 'listening'; render(); return; }
+  switch (ds.act) {
+    case 'voice': state.voice = 'listening'; render(); break;
+    case 'voiceHeard': state.voice = 'confirming'; render(); break;
+    case 'voiceClose': state.voice = null; render(); break;
+    case 'draft': state.snack = { msg: 'AI 已重新產生建議草稿：符合新法工時；無法全綠的趟次留在待處理清單。', undo: false }; render(); break;
+    case 'confirm': {
+      const reds = tasks(state).filter(t => t.light === 'r').length;
+      if (reds && !state.guard) { state.guard = true; render(); break; }
+      act(() => { state.guard = false; state.confirmed = '21:05'; state.modified = false; }, '班表已確認並推播給司機。出發前 2 小時、30 分鐘會自動複查，變紅才通知你。之後若再修改，會提醒你重新推播。', null, { isConfirm: true, undo: false });
+      break;
+    }
+    case 'confirmAnyway': act(() => { state.guard = false; state.confirmed = '21:05'; state.modified = false; }, '班表已確認（含紅燈趟次）並推播給司機。', null, { isConfirm: true, undo: false }); break;
+    case 'guardFix': { state.guard = false; const q = queue(tasks(state)); state.sel = q[0]?.id ?? null; state.voice = null; render(); break; }
+    case 'undo': if (history.length) { state = JSON.parse(history.pop()); state.snack = { msg: '已復原上一個動作。', undo: false }; render(); } break;
+    case 'snackClose': state.snack = null; render(); break;
+    case 'reset': {
+      // 退回示範的初始狀態；本身也可以「復原」
+      history.push(JSON.stringify({ ...state, snack: null }));
+      state = fresh();
+      state.snack = { msg: '已退回原樣：回到明日排班的初始狀態。', undo: true };
+      window.scrollTo(0, 0);
+      render();
+      break;
+    }
+    case 'note': state.noteSent = true; render(); break;
+  }
+});
+document.addEventListener('submit', e => e.preventDefault());
+
+render();
+</script>

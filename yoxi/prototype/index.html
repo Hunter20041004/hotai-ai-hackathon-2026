@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>On Track 概念原型｜yoxi</title>
+<meta name="description" content="yoxi App 新功能 On Track 的互動概念原型（示意資料）">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{
+  /* 品牌（取自 yoxi 官網 CSS；紅色與藍灰各調深一階以符合文字對比 4.5:1） */
+  --red:#DC2F1E; --red-press:#C42819; --red-soft:#FDECEA;
+  --navy-900:#051122; --navy-800:#0B1F38; --navy-600:#22344D; --slate-600:#3C4C60; --slate-400:#5E7089;
+  --line:#DFE4ED; --line-strong:#C3CBDC; --bg:#F2F6F9; --surface:#FFFFFF; --blue:#0C4C80;
+  /* 狀態 */
+  --go:#0E9F4B; --go-soft:#E6F6EC; --warn:#E59A00; --warn-soft:#FFF4DB; --stop:#D83A2E; --stop-soft:#FCE9E7;
+  /* 字 */
+  --font-ui:"Noto Sans TC",system-ui,-apple-system,sans-serif;
+  --font-num:"Montserrat","Noto Sans TC",system-ui,sans-serif;
+  --fs-xs:12px; --fs-sm:13px; --fs-md:15px; --fs-lg:17px; --fs-xl:22px; --fs-2xl:28px;
+  /* 形 */
+  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-pill:999px;
+  --shadow-card:0 1px 2px rgba(5,17,34,.06),0 6px 18px -8px rgba(5,17,34,.16);
+  --ease-out:cubic-bezier(.23,1,.32,1); --ease-drawer:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font-ui);color:var(--navy-800);background:#E9EEF4;-webkit-font-smoothing:antialiased}
+::selection{background:var(--red);color:#fff}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:2.5px solid var(--blue);outline-offset:2px;border-radius:8px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ---------- 版面 ---------- */
+.stage{min-height:100%;display:flex;align-items:center;justify-content:center;gap:56px;padding:32px 40px}
+.device,.panel{zoom:var(--z,1)}
+.device{position:relative;width:393px;height:852px;border-radius:58px;background:#0A0F17;padding:12px;box-shadow:0 30px 60px -20px rgba(5,17,34,.45),0 0 0 2px #2A3240 inset;flex:none}
+.screen{position:relative;width:100%;height:100%;border-radius:46px;overflow:hidden;background:var(--bg);isolation:isolate}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:35px;border-radius:20px;background:#000;z-index:60}
+.statusbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 40px;font-family:var(--font-num);font-weight:600;font-size:16px;z-index:50;pointer-events:none}
+.statusbar svg{height:12px}
+.view{position:absolute;top:0;left:0;right:0;bottom:26px;display:flex;flex-direction:column}
+.screen.dark{background:#051122}
+.view.enter{animation:viewIn 260ms var(--ease-out) both}
+.view.leave{animation:viewOut 180ms var(--ease-out) both;pointer-events:none}
+@keyframes viewIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes viewOut{to{opacity:0;transform:translateX(-12px)}}
+@keyframes fadeOnly{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{to{opacity:0}}
+.view.instant{animation:none}
+
+.mark{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);z-index:55;font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:999px;background:rgba(5,17,34,.74);color:#fff;pointer-events:none;white-space:nowrap}
+.mark.on-dark{background:rgba(255,255,255,.18)}
+/* ---------- 共用元件 ---------- */
+.appbar{padding:62px 20px 12px;display:flex;align-items:center;gap:12px}
+.appbar h1{font-size:var(--fs-lg);font-weight:700;margin:0;flex:1}
+.iconbtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--navy-800);transition:background-color 160ms ease}
+@media (hover:hover) and (pointer:fine){.iconbtn:hover{background:rgba(5,17,34,.06)}}
+.scroll{flex:1;overflow-y:auto;padding:0 16px 24px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:16px}
+.label{font-size:var(--fs-xs);color:var(--slate-400);font-weight:500}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:var(--r-pill);font-weight:700;font-size:var(--fs-md);transition:transform 140ms var(--ease-out),background-color 160ms ease,opacity 160ms ease;width:100%}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--red);color:#fff}
+@media (hover:hover) and (pointer:fine){.btn-primary:hover{background:var(--red-press)}}
+.btn-ghost{background:#fff;color:var(--navy-800);box-shadow:0 0 0 1.5px var(--line-strong) inset}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn[disabled]:active{transform:none}
+.footer{padding:12px 16px 14px;background:linear-gradient(to top,var(--bg) 70%,rgba(242,246,249,0))}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:700}
+.chip-go{background:var(--go-soft);color:#0A7A39}
+.chip-warn{background:var(--warn-soft);color:#8A5A00}
+.chip-stop{background:var(--stop-soft);color:#A82A20}
+.chip-muted{background:#EAEDF3;color:var(--slate-600)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.legs{display:flex;align-items:center;gap:6px;color:var(--slate-600);font-size:var(--fs-sm);font-weight:500}
+.leg{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:8px;background:#EEF2F7}
+.leg svg{width:16px;height:16px}
+.leg-taxi{background:var(--red-soft);color:#B3271B}
+.sep{color:var(--line-strong)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--fs-sm);color:var(--slate-600)}
+.meta b{color:var(--navy-800);font-weight:700}
+.over{color:#B3271B;font-weight:700}
+
+/* 時間軸：預估點＋最壞情況區間＋期限線 */
+.tl{position:relative;height:46px;margin-top:10px}
+.tl-track{position:absolute;left:0;right:0;top:22px;height:2px;background:var(--line)}
+.tl-band{position:absolute;top:17px;height:12px;border-radius:6px;transform-origin:left center;}
+.tl-dot{position:absolute;top:15px;width:16px;height:16px;margin-left:-8px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 3px rgba(5,17,34,.3);}
+.tl-deadline{position:absolute;top:2px;bottom:4px;width:0;border-left:2px dashed var(--red)}
+.tl-deadline span{position:absolute;top:-2px;left:5px;font-size:11px;font-weight:700;color:var(--red);font-family:var(--font-num);white-space:nowrap}
+.tl-ticks{position:absolute;left:0;right:0;bottom:-6px;height:12px;font-size:10px;color:var(--slate-400);font-family:var(--font-num)}
+.tl-ticks span{position:absolute;transform:translateX(-50%)}
+.tl-ticks span:first-child{transform:none}
+.tl.dark .tl-track{background:rgba(255,255,255,.18)}
+.tl.dark .tl-dot{border-color:#1B2433}
+.tl.dark .tl-ticks{color:rgba(255,255,255,.5)}
+.tl.dark .tl-deadline{border-color:#FF7A6E}
+.tl.dark .tl-deadline span{color:#FF8B80}
+
+/* ---------- 首頁 ---------- */
+.home-head{padding:64px 20px 8px}
+.home-head .greet{font-size:var(--fs-2xl);font-weight:700;margin:6px 0 0;letter-spacing:-.01em}
+.loc{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--slate-600)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 4px}
+.tile{position:relative;text-align:left;border-radius:var(--r-lg);padding:16px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between;transition:transform 140ms var(--ease-out),box-shadow 200ms ease}
+.tile:active{transform:scale(.97)}
+.tile svg{width:30px;height:30px}
+.tile b{font-size:var(--fs-lg)}
+.tile small{display:block;font-size:var(--fs-xs);margin-top:2px;opacity:.8}
+.tile-ride{background:var(--navy-800);color:#fff}
+.tile-plan{background:var(--red);color:#fff}
+.tile .new{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;background:#fff;color:var(--red);border-radius:var(--r-pill);padding:2px 8px}
+.sec-title{display:flex;align-items:baseline;justify-content:space-between;padding:22px 20px 10px}
+.sec-title h2{font-size:var(--fs-md);margin:0;font-weight:700}
+.trip{display:flex;gap:12px;align-items:center;padding:14px 16px;background:#fff;border-radius:var(--r-md);box-shadow:var(--shadow-card);margin:0 16px 10px}
+.trip .day{width:44px;flex:none;text-align:center}
+.trip .day b{display:block;font-size:var(--fs-sm)}
+.trip .day span{font-size:11px;color:var(--slate-400)}
+.trip .body{flex:1;min-width:0}
+.trip .t1{font-weight:700;font-size:var(--fs-md)}
+.trip .t2{font-size:var(--fs-sm);color:var(--slate-600);margin-top:2px}
+.weekline{margin:4px 16px 0;padding:12px 16px;border-radius:var(--r-md);background:#fff;box-shadow:0 0 0 1px var(--line) inset;font-size:var(--fs-sm);color:var(--slate-600)}
+.weekline b{color:var(--navy-800)}
+.tabbar{display:flex;justify-content:space-around;padding:8px 12px 10px;background:#fff;border-top:1px solid var(--line)}
+.tabbar span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--slate-400)}
+.tabbar span.on{color:var(--red)}
+.tabbar svg{width:22px;height:22px}
+
+/* ---------- 訊息 ---------- */
+.chat{flex:1;padding:8px 14px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.bubble{max-width:78%;padding:10px 14px;border-radius:20px;font-size:var(--fs-md);line-height:1.45}
+.bubble.in{background:#EEF0F3;align-self:flex-start;border-bottom-left-radius:6px}
+.bubble.out{background:#2F7CF6;color:#fff;align-self:flex-end;border-bottom-right-radius:6px}
+.bubble.hl{box-shadow:0 0 0 2.5px var(--red)}
+.time-sep{align-self:center;font-size:11px;color:var(--slate-400);margin:6px 0}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;background:#F4F5F7;border-radius:28px;padding:18px 16px 26px;box-shadow:0 -8px 40px rgba(5,17,34,.25);animation:sheetIn 340ms var(--ease-drawer) both;z-index:20}
+@keyframes sheetIn{from{transform:translateY(100%)}to{transform:none}}
+.sheet .grab{width:38px;height:5px;border-radius:3px;background:#C9CED6;margin:0 auto 14px}
+.shareapps{display:flex;gap:18px;padding:6px 4px 14px;overflow:hidden}
+.shareapp{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--slate-600);width:62px}
+.appicon{width:60px;height:60px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:700}
+.appicon.yoxi{background:var(--red);font-family:var(--font-num);font-size:17px;letter-spacing:-.02em;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--red)}
+.appicon.g1{background:#9AA5B5}.appicon.g2{background:#B7C0CD}.appicon.g3{background:#CDD4DE}
+.shareaction{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:14px 16px;font-weight:700;font-size:var(--fs-md);width:100%;transition:transform 140ms var(--ease-out)}
+.shareaction:active{transform:scale(.98)}
+
+/* ---------- AI 讀出 ---------- */
+.ai-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);background:#EAF1F8;color:var(--blue);font-size:var(--fs-sm);line-height:1.5}
+.ai-note svg{width:18px;height:18px;flex:none;margin-top:1px}
+.field{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}
+.field .k{width:72px;flex:none;font-size:var(--fs-sm);color:var(--slate-400)}
+.field .v{flex:1;font-weight:700;font-size:var(--fs-md)}
+.field .v small{display:block;font-weight:400;font-size:var(--fs-xs);color:var(--slate-400);margin-top:2px}
+.field .edit{font-size:var(--fs-sm);color:var(--blue);font-weight:500;padding:6px 8px;border-radius:8px}
+@media (hover:hover) and (pointer:fine){.field .edit:hover{background:#EAF1F8}}
+.seg{display:inline-flex;background:#EAEDF3;border-radius:var(--r-pill);padding:3px}
+.seg button{height:30px;padding:0 14px;border-radius:var(--r-pill);font-size:var(--fs-sm);font-weight:700;color:var(--slate-600);transition:background-color 160ms ease,color 160ms ease}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--navy-800);box-shadow:0 1px 2px rgba(5,17,34,.12)}
+.skel{height:14px;border-radius:7px;background:linear-gradient(90deg,#E6EAF0 0%,#F3F5F8 50%,#E6EAF0 100%);background-size:200% 100%;animation:shimmer 1.1s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* ---------- 方案頁 ---------- */
+.goal{padding:4px 20px 14px}
+.goal h2{margin:0;font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em}
+.goal p{margin:6px 0 0;font-size:var(--fs-sm);color:var(--slate-600)}
+.depart{display:flex;align-items:baseline;gap:8px;margin:12px 0 2px}
+.depart .big{font-size:34px;font-weight:700;line-height:1}
+.depart span{font-size:var(--fs-sm);color:var(--slate-600)}
+.whatis{font-size:var(--fs-xs);color:var(--slate-400);line-height:1.6;margin-top:12px}
+
+/* ---------- 鎖定畫面 ---------- */
+.lock{position:absolute;inset:0;background:radial-gradient(120% 70% at 30% 0%,#26446E 0%,#0B1F38 55%,#051122 100%);color:#fff;display:flex;flex-direction:column;align-items:center}
+.lock .date{margin-top:74px;font-size:var(--fs-md);font-weight:500;opacity:.85}
+.lock .clock{font-family:var(--font-num);font-weight:600;font-size:86px;line-height:1;letter-spacing:-.03em;margin-top:2px}
+.lock .wx{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);opacity:.85;margin-top:8px}
+.lock .wx svg{width:16px;height:16px}
+.la{position:absolute;left:12px;right:12px;bottom:110px;background:rgba(14,20,30,.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:24px;padding:14px 16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.la-top{display:flex;align-items:center;gap:8px}
+.la-icon{width:26px;height:26px;border-radius:7px;background:var(--red);display:grid;place-items:center;font-family:var(--font-num);font-weight:700;font-size:10px}
+.la-title{font-size:var(--fs-sm);font-weight:700;flex:1}
+.la-light{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:var(--r-pill);transition:background-color 240ms ease,color 240ms ease}
+.la-light.go{background:rgba(14,159,75,.22);color:#5EE08F}
+.la-light.warn{background:rgba(229,154,0,.22);color:#FFC94D}
+.la-light.stop{background:rgba(216,58,46,.28);color:#FF8B80}
+.la-row{display:flex;gap:18px;margin-top:10px}
+.la-row div{font-size:11px;color:rgba(255,255,255,.6)}
+.la-row b{display:block;font-family:var(--font-num);font-size:20px;color:#fff;font-weight:600;margin-top:1px}
+.la-sub{font-size:var(--fs-xs);color:rgba(255,255,255,.72);margin-top:8px;display:flex;align-items:center;gap:6px}
+.la-sub svg{width:14px;height:14px}
+.lock-hint{position:absolute;bottom:14px;font-size:var(--fs-xs);opacity:.55}
+.notif{position:relative;margin-top:26px;width:calc(100% - 20px);background:rgba(248,249,251,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--navy-900);border-radius:22px;padding:12px 14px;display:flex;gap:10px;text-align:left;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:notifIn 320ms var(--ease-drawer) both;z-index:30;transition:transform 140ms var(--ease-out)}
+.notif:active{transform:scale(.98)}
+@keyframes notifIn{from{transform:translateY(-24px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.notif .appicon{width:38px;height:38px;border-radius:10px;font-size:11px;box-shadow:none}
+.notif b{font-size:var(--fs-sm)}
+.notif p{text-wrap:pretty;margin:2px 0 0;font-size:var(--fs-sm);line-height:1.4;color:var(--navy-600)}
+.notif .when{float:right;font-size:11px;color:var(--slate-400);font-weight:400}
+
+/* ---------- 救援方案卡 ---------- */
+.alert{margin:0 16px 12px;padding:14px 16px;border-radius:var(--r-md);background:var(--stop-soft);color:#7E1F17}
+.alert b{display:block;font-size:var(--fs-lg)}
+.alert span{font-size:var(--fs-sm)}
+.ai-say{margin:0 16px 14px;padding:14px 16px;border-radius:var(--r-md);background:#fff;box-shadow:0 0 0 1px var(--line) inset;font-size:var(--fs-sm);line-height:1.6}
+.ai-say .who{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;color:var(--blue);margin-bottom:4px}
+.ai-say .who svg{width:14px;height:14px}
+.opt{margin:0 16px 12px}
+.opt-head{display:flex;align-items:center;gap:8px}
+.opt-head h3{margin:0;font-size:var(--fs-lg);font-weight:700}
+.rank{font-size:11px;font-weight:700;color:#fff;background:var(--navy-800);border-radius:var(--r-pill);padding:3px 8px}
+.opt .pick{margin-top:12px;height:44px;font-size:var(--fs-sm)}
+.opt.first{box-shadow:0 0 0 2px var(--navy-800),var(--shadow-card)}
+.excluded{margin:2px 16px 10px;padding:12px 14px;border-radius:var(--r-md);border:1.5px dashed var(--line-strong);display:flex;align-items:center;gap:10px;font-size:var(--fs-sm);color:var(--slate-400)}
+.excluded svg{width:18px;height:18px}
+
+/* ---------- 叫車確認 ---------- */
+.mapish{height:250px;margin:-8px 0 0;position:relative;background:#E3E9F0;overflow:hidden}
+.mapish svg{position:absolute;inset:0;width:100%;height:100%}
+.rows .r{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:var(--fs-md)}
+.rows .r:last-child{border-bottom:0}
+.rows .r span{color:var(--slate-600);font-size:var(--fs-sm)}
+.switch{width:46px;height:28px;border-radius:14px;background:var(--line-strong);position:relative;transition:background-color 200ms ease;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform 220ms var(--ease-out)}
+.switch[aria-checked="true"]{background:var(--go)}
+.switch[aria-checked="true"]::after{transform:translateX(18px)}
+.spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin 700ms linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.matched{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r-md);background:var(--go-soft);color:#0A5E2D;font-size:var(--fs-sm);margin-top:12px;animation:viewIn 260ms var(--ease-out) both}
+.matched svg{width:20px;height:20px}
+
+/* ---------- 抵達 ---------- */
+.arrive{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px}
+.arrive .ok{width:76px;height:76px;border-radius:50%;background:var(--go);display:grid;place-items:center;color:#fff;animation:pop 420ms var(--ease-out) both}
+.arrive .ok svg{width:38px;height:38px}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.arrive h2{font-size:var(--fs-2xl);margin:18px 0 6px}
+.arrive p{margin:0;color:var(--slate-600);font-size:var(--fs-md)}
+.summary{width:100%;margin-top:22px;text-align:left}
+.summary .r{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+.summary .r:last-child{border-bottom:0}
+.summary .r span{color:var(--slate-600)}
+.privacy{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);color:var(--slate-400);margin-top:14px}
+.privacy svg{width:14px;height:14px}
+
+/* ---------- 控制台 ---------- */
+.panel{width:340px;flex:none;background:#fff;border-radius:24px;box-shadow:0 20px 50px -24px rgba(5,17,34,.35);padding:20px 22px;max-height:852px;display:flex;flex-direction:column}
+.panel h1{margin:0;font-size:20px;font-weight:700}
+.panel .sub{margin:4px 0 0;font-size:var(--fs-sm);color:var(--slate-600)}
+.disclaimer{margin-top:10px;font-size:var(--fs-xs);color:#8A5A00;background:var(--warn-soft);border-radius:10px;padding:8px 10px;line-height:1.5}
+.steps{list-style:none;margin:12px 0 0;padding:0;overflow-y:auto;flex:1}
+.steps li button{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:3px 10px;border-radius:12px;transition:background-color 160ms ease}
+@media (hover:hover) and (pointer:fine){.steps li button:hover{background:var(--bg)}}
+.steps .n{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--font-num);font-size:11px;font-weight:700;background:#EAEDF3;color:var(--slate-600);margin-top:1px}
+.steps .t{font-size:var(--fs-sm);font-weight:500;line-height:1.4}
+.steps .t small{display:block;font-size:11px;color:var(--slate-400);font-weight:400}
+.steps li.done .n{background:var(--navy-800);color:#fff}
+.steps li.cur button{background:var(--red-soft)}
+.steps li.cur .n{background:var(--red);color:#fff}
+.steps li.cur .t{font-weight:700}
+.now{margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--bg);font-size:var(--fs-sm);line-height:1.55;color:var(--slate-600)}
+.now b{color:var(--navy-800)}
+.ctrl{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:12px}
+.ctrl .btn{height:46px;font-size:var(--fs-sm)}
+.ctrl2{display:flex;gap:8px;margin-top:8px}
+.ctrl2 button{flex:1;height:38px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:700;color:var(--slate-600);box-shadow:0 0 0 1px var(--line) inset;transition:background-color 160ms ease}
+@media (hover:hover) and (pointer:fine){.ctrl2 button:hover{background:var(--bg)}}
+.ctrl2 .trig{flex:1.6;color:#A82A20;box-shadow:0 0 0 1.5px #F2B8B2 inset}
+.ctrl2 button[aria-pressed="true"]{background:var(--navy-800);color:#fff;box-shadow:none}
+.kbd{font-size:11px;color:var(--slate-400);margin-top:10px;text-align:center}
+body.recording .panel{display:none}
+.showpanel{position:fixed;right:16px;bottom:16px;display:none;height:38px;padding:0 14px;border-radius:var(--r-pill);background:#fff;box-shadow:var(--shadow-card);font-size:var(--fs-xs);font-weight:700}
+body.recording .showpanel{display:block}
+
+/* ---------- 手機寬度：不畫手機外框，控制台縮成底部列 ---------- */
+.mbar{display:none}
+@media (max-width:760px){
+  body{background:var(--bg)}
+  .stage{padding:0;display:block;min-height:100dvh}
+  .device{width:100%;height:calc(100dvh - 64px);border-radius:0;padding:0;box-shadow:none;background:none}
+  .screen{border-radius:0}
+  .island,.statusbar{display:none}
+  .appbar{padding-top:18px}.home-head{padding-top:20px}
+  .lock .date{margin-top:40px}
+  .panel{display:none}
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;align-items:center;gap:8px;padding:0 12px calc(env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);z-index:100}
+  .mbar .lbl{flex:1;min-width:0;font-size:var(--fs-xs);color:var(--slate-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mbar .lbl b{color:var(--navy-800)}
+  .mbar .btn{height:42px;width:auto;padding:0 16px;font-size:var(--fs-sm)}
+  .tabbar{padding-bottom:8px}
+  .footer{padding-bottom:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .view.enter{animation:fadeOnly 150ms ease both}.view.leave{animation:fadeOut 120ms ease both}
+  .sheet,.notif,.matched,.arrive .ok{animation:fadeOnly 150ms ease both}
+  .skel{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><path d="M5 11h14"/><circle cx="7.5" cy="13.5" r=".6" fill="currentColor"/><circle cx="16.5" cy="13.5" r=".6" fill="currentColor"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></symbol>
+    <symbol id="i-bus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="2.5"/><path d="M5 11h14M8 18v2.5M16 18v2.5"/><circle cx="8.5" cy="14.5" r=".7" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".7" fill="currentColor"/></symbol>
+    <symbol id="i-metro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 10h12M8.5 21l2-4M15.5 21l-2-4"/><circle cx="9.5" cy="13.5" r=".7" fill="currentColor"/><circle cx="14.5" cy="13.5" r=".7" fill="currentColor"/></symbol>
+    <symbol id="i-scooter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M15 6h2l1.5 8.5M9 13h6l1-4"/></symbol>
+    <symbol id="i-rain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15a4 4 0 0 1 .6-7.95A5.5 5.5 0 0 1 18 9a3 3 0 0 1 0 6"/><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-walk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 1 2 3M12 15l-1-4"/></symbol>
+  </defs>
+</svg>
+
+<main class="stage">
+  <div class="device" aria-label="iPhone 模擬畫面">
+    <div class="screen" id="screen">
+      <div class="island" aria-hidden="true"></div>
+      <div class="statusbar" id="statusbar" aria-hidden="true">
+        <span class="num" id="sbtime">17:52</span>
+        <svg viewBox="0 0 64 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="36" y="1" width="23" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="38" y="3" width="16" height="7" rx="1.6"/><rect x="60.5" y="4.5" width="2" height="4" rx="1"/></svg>
+      </div>
+      <div id="views"></div>
+      <div class="mark" id="mark" aria-hidden="true">概念原型・示意資料</div>
+    </div>
+  </div>
+
+  <aside class="panel" aria-label="示範控制台">
+    <h1>On Track 概念原型</h1>
+    <p class="sub">yoxi App 新功能｜週五 19:00 前到信義區</p>
+    <p class="disclaimer">概念原型，所有時間、費用與地點皆為示意資料，不會真的叫車或付款。</p>
+    <ol class="steps" id="steps"></ol>
+    <div class="now" id="now" aria-live="polite"></div>
+    <div class="ctrl">
+      <button class="btn btn-ghost" id="prev" aria-label="上一步">上一步</button>
+      <button class="btn btn-primary" id="next">下一步</button>
+    </div>
+    <div class="ctrl2">
+      <button id="trigger" class="trig">觸發：降雨＋公車故障</button>
+      <button id="auto" aria-pressed="false">自動播放</button>
+    </div>
+    <div class="ctrl2">
+      <button id="restart">重新開始</button>
+      <button id="rec">隱藏控制台</button>
+    </div>
+    <p class="kbd">鍵盤：← → 換步驟　H 顯示／隱藏控制台</p>
+  </aside>
+</main>
+<button class="showpanel" id="showpanel">顯示控制台（H）</button>
+<nav class="mbar" aria-label="示範控制">
+  <button class="iconbtn" id="mprev" aria-label="上一步"><svg width="20" height="20"><use href="#i-back"/></svg></button>
+  <div class="lbl" id="mlbl"></div>
+  <button class="btn btn-primary" id="mnext">下一步</button>
+</nav>
+
+<script>
+/* ====== 示意資料（與提案文件 §3.5 一致）====== */
+const SCALE={from:18*60+40,to:19*60+15,deadline:19*60};
+const m=t=>{const[a,b]=t.split(':');return +a*60+ +b};
+const pct=t=>((m(t)-SCALE.from)/(SCALE.to-SCALE.from)*100).toFixed(2);
+const toneColor={go:'var(--go)',warn:'var(--warn)',stop:'var(--stop)',ink:'var(--navy-800)'};
+function timeline({exp,worst,tone='ink',dark=false}){
+  const band=worst?`<div class="tl-band" style="left:${pct(exp)}%;width:${pct(worst)-pct(exp)}%;background:${toneColor[tone]};opacity:.28"></div>`:'';
+  return `<div class="tl${dark?' dark':''}" data-exp="${exp}" role="img" aria-label="預估 ${exp} 抵達${worst?'，最壞情況 '+worst:''}，期限 19:00">
+    <div class="tl-track"></div>${band}
+    <div class="tl-deadline" style="left:${pct('19:00')}%"><span>期限 19:00</span></div>
+    <div class="tl-dot" style="left:${pct(exp)}%;background:${toneColor[tone]}"></div>
+    <div class="tl-ticks">${['18:40','18:50','19:10'].map(t=>`<span style="left:${pct(t)}%">${t}</span>`).join('')}</div>
+  </div>`;
+}
+const ic=(id,cls='')=>`<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+const leg=(id,t,taxi)=>`<span class="leg${taxi?' leg-taxi':''}">${ic(id)}${t}</span>`;
+const arrow=`<svg class="sep" width="14" height="14" aria-hidden="true"><use href="#i-next"/></svg>`;
+
+/* ====== 步驟 ====== */
+const STEPS=[
+ {t:'首頁：本週行程',s:'週一、週三都沒叫車',time:'17:52',now:'這週兩趟重要行程都用 yoxi 規劃，<b>搭大眾運輸綠燈抵達、沒叫車</b>。這就是「不叫車的日子也打開」。點「規劃行程」或按下一步。',next:'下一步',view:'home'},
+ {t:'朋友傳來訊息',s:'分享到 yoxi',time:'17:53',now:'朋友傳來週五聚餐的時間地點。長按訊息分享到 yoxi，<b>不用自己輸入</b>。',next:'分享到 yoxi',view:'chat'},
+ {t:'AI 讀出條件',s:'使用者確認',time:'17:53',now:'<b>生成式 AI 只讀出條件</b>：目的地、抵達期限、預算、最在意。時間與費用由系統計算，AI 不產生數字。',next:'確認，找方案',view:'parse'},
+ {t:'方案與最晚出發時間',s:'18:05 前出發',time:'17:54',now:'系統用<b>最壞情況</b>反推最晚出發時間：18:05 前出發，最晚 18:58 也能到。照建議出發，就從綠燈開始。',next:'開始行程',view:'plan'},
+ {t:'鎖定畫面：綠燈',s:'不發出通知',time:'18:06',now:'行程中，鎖定畫面持續顯示狀態卡。<b>綠燈不發通知</b>。下一步會觸發途中事件。',next:'觸發：降雨＋公車故障',view:'lockGo'},
+ {t:'降雨＋公車故障：紅燈',s:'震動通知一次',time:'18:20',now:'18:20 開始下雨，公車又故障，預估 19:08 抵達、會晚 8 分鐘，<b>燈號轉紅、震動通知一次</b>。點通知看方案。',next:'查看方案',view:'lockStop'},
+ {t:'三張方案卡',s:'選守時間',time:'18:20',now:'三張方案卡都對照你的條件挑選，並標出<b>最壞情況</b>與超出預算。下雨，所以 iRent 機車不列入。主角最在意準時，選「守時間」。',next:'選守時間',view:'rescue'},
+ {t:'黃燈：改走守時間',s:'最壞情況 19:11',time:'18:21',now:'改走「捷運＋yoxi 叫車」。預計 18:58 準時，但最壞情況 19:11，所以是<b>黃燈：不發通知</b>，誠實顯示風險。',next:'快轉到 18:37 到站',view:'lockWarn'},
+ {t:'到站一鍵叫車',s:'和泰 Pay、Points',time:'18:37',now:'到捷運轉乘站，<b>一鍵叫 yoxi</b>，付款沿用和泰 Pay 與和泰 Points 折抵。叫車須使用者確認。（18:37＝18:58 減去晚高峰 2–4 公里「叫車到抵達」中位數約 21 分鐘）',next:'確認叫車',view:'ride'},
+ {t:'18:58 抵達',s:'比期限早 2 分鐘',time:'18:58',now:'如期抵達。這週打開 yoxi 3 次，<b>只有快趕不上的那一次叫了車</b>。行程結束，位置軌跡已刪除。',next:'重新開始',view:'arrive'},
+];
+
+/* ====== 畫面 ====== */
+const V={};
+V.home=()=>`
+ <div class="home-head">
+   <span class="loc">${ic('i-pin','w-4 h-4')}<span>目前位置：中山區（示意）</span></span>
+   <p class="greet">要去哪裡？</p>
+ </div>
+ <div class="tiles">
+   <button class="tile tile-ride" data-noop>${ic('i-car')}<span><b>叫車</b><small>立即或預約</small></span></button>
+   <button class="tile tile-plan" data-go>${ic('i-route')}<span class="new">新功能</span><span><b>規劃行程</b><small>On Track 幫你如期抵達</small></span></button>
+ </div>
+ <div class="sec-title"><h2>本週 On Track</h2><span class="label">示意</span></div>
+ <div class="trip"><div class="day"><b>週一</b></div><div class="body"><div class="t1">牙醫診所</div><div class="t2">捷運・準時抵達</div></div><span class="chip chip-go"><span class="dot" style="background:var(--go)"></span>綠燈・未叫車</span></div>
+ <div class="trip"><div class="day"><b>週三</b></div><div class="body"><div class="t1">面試</div><div class="t2">捷運・準時抵達</div></div><span class="chip chip-go"><span class="dot" style="background:var(--go)"></span>綠燈・未叫車</span></div>
+ <p class="weekline">這週打開 yoxi <b class="num">2</b> 次，叫車 <b class="num">0</b> 次。</p>
+ <div style="flex:1"></div>
+ <nav class="tabbar" aria-hidden="true"><span class="on">${ic('i-home')}首頁</span><span>${ic('i-list')}行程</span><span>${ic('i-user')}會員</span></nav>`;
+
+V.chat=()=>`
+ <div class="appbar" style="background:#fff;border-bottom:1px solid var(--line)"><button class="iconbtn" aria-label="返回">${ic('i-back','w-5 h-5')}</button><h1>小美</h1></div>
+ <div class="chat">
+   <span class="time-sep">今天 17:40</span>
+   <div class="bubble in">週五晚上要不要吃飯？</div>
+   <div class="bubble out">好啊，哪裡？</div>
+   <div class="bubble in hl">週五 19:00，信義區的森林小館，我訂好位了！</div>
+ </div>
+ <div class="sheet" role="dialog" aria-label="分享">
+   <div class="grab"></div>
+   <div class="shareapps">
+     <div class="shareapp"><div class="appicon yoxi">yoxi</div>yoxi</div>
+     <div class="shareapp"><div class="appicon g1"></div>訊息</div>
+     <div class="shareapp"><div class="appicon g2"></div>郵件</div>
+     <div class="shareapp"><div class="appicon g3"></div>備忘錄</div>
+   </div>
+   <button class="shareaction" data-go><span>用 yoxi 規劃這趟行程</span>${ic('i-next','w-5 h-5')}</button>
+ </div>`;
+
+V.parse=()=>`
+ <div class="appbar"><button class="iconbtn" data-back aria-label="返回">${ic('i-back','w-5 h-5')}</button><h1>確認這趟的條件</h1></div>
+ <div class="scroll">
+   <div class="ai-note">${ic('i-spark')}<span id="aistate">AI 正在讀取訊息…</span></div>
+   <div class="card" style="margin-top:12px" id="fields">
+     ${[1,2,3,4].map(()=>`<div class="field"><span class="k"><div class="skel" style="width:48px"></div></span><span class="v"><div class="skel" style="width:70%"></div></span></div>`).join('')}
+   </div>
+ </div>
+ <div class="footer"><button class="btn btn-primary" data-go id="confirmBtn" disabled>確認，找方案</button></div>`;
+const parsedFields=`
+ <div class="field"><span class="k">目的地</span><span class="v">森林小館<small>台北市信義區（示意）</small></span><button class="edit" data-noop title="原型未開放修改">修改</button></div>
+ <div class="field"><span class="k">抵達期限</span><span class="v num">週五 19:00</span><button class="edit" data-noop title="原型未開放修改">修改</button></div>
+ <div class="field"><span class="k">預算</span><span class="v">200 元<small>沿用你常用的設定</small></span><button class="edit" data-noop title="原型未開放修改">修改</button></div>
+ <div class="field"><span class="k">最在意</span><span class="v"><span class="seg" role="group" aria-label="最在意"><button aria-pressed="true" data-seg>準時</button><button aria-pressed="false" data-seg>省錢</button></span></span></div>
+ <div class="field"><span class="k">情境條件</span><span class="v" style="font-weight:400;color:var(--slate-600);font-size:var(--fs-sm)">無（下雨時系統會自動加入）</span></div>`;
+
+V.plan=()=>`
+ <div class="appbar"><button class="iconbtn" data-back aria-label="返回">${ic('i-back','w-5 h-5')}</button><h1>方案</h1></div>
+ <div class="goal"><h2>週五 19:00 前到森林小館</h2><p>預算 200 元・最在意準時・依此排序</p></div>
+ <div class="scroll">
+   <div class="card">
+     <div class="legs">${leg('i-bus','公車')}${arrow}${leg('i-metro','捷運')}${arrow}${leg('i-walk','步行')}</div>
+     <div class="depart"><span class="big num">18:05</span><span>前出發</span></div>
+     ${timeline({exp:'18:45',worst:'18:58',tone:'go'})}
+     <div class="meta" style="margin-top:14px"><span>預計 <b class="num">18:45</b></span><span>最壞情況 <b class="num">18:58</b></span><span>費用 <b class="num">45</b> 元</span></div>
+     <p class="whatis">最壞情況：同類行程 100 次中，約 95 次會比這個時間早到。照「最晚出發時間」出發，行程從綠燈開始。數字為示意。</p>
+   </div>
+ </div>
+ <div class="footer"><button class="btn btn-primary" data-go>開始行程</button></div>`;
+
+function lockScreen({time,date='10月2日 星期五',light,title,exp,worst,tone,sub,subIcon,rain,notif}){
+  const lightTxt={go:'綠燈',warn:'黃燈',stop:'紅燈'}[light];
+  return `<div class="lock">
+   <div class="date">${date}</div>
+   <div class="clock">${time}</div>
+   <div class="wx">${ic(rain?'i-rain':'i-lock')}<span>${rain?'信義區 降雨':'已鎖定'}</span></div>
+   ${notif||''}
+   <section class="la" aria-label="行程狀態卡">
+     <div class="la-top"><span class="la-icon">yoxi</span><span class="la-title">${title}</span><span class="la-light ${light}"><span class="dot" style="background:currentColor"></span>${lightTxt}</span></div>
+     <div class="la-row"><div>期限<b>19:00</b></div><div>預計<b>${exp}</b></div><div>最壞情況<b>${worst||'—'}</b></div></div>
+     ${timeline({exp,worst,tone,dark:true})}
+     <div class="la-sub">${ic(subIcon||'i-bus')}<span>${sub}</span></div>
+   </section>
+   <div class="lock-hint">向上滑動以解鎖</div>
+ </div>`;
+}
+V.lockGo=()=>lockScreen({time:'18:06',light:'go',title:'On Track｜森林小館',exp:'18:45',worst:'18:58',tone:'go',sub:'公車即將到站，照原計畫進行'});
+V.lockStop=()=>lockScreen({time:'18:20',light:'stop',title:'On Track｜森林小館',exp:'19:08',worst:null,tone:'stop',rain:true,sub:'公車故障，原計畫會晚 8 分鐘',
+  notif:`<button class="notif" data-go aria-label="On Track 通知：預估 19:08 抵達，會晚 8 分鐘，查看方案"><span class="appicon yoxi">yoxi</span><span style="flex:1"><b>On Track</b><span class="when">現在</span><p>預估 19:08 抵達，會晚 8 分鐘。3 個方案可選。</p></span></button>`});
+V.lockWarn=()=>lockScreen({time:'18:21',light:'warn',title:'On Track｜改走守時間',exp:'18:58',worst:'19:11',tone:'warn',rain:true,subIcon:'i-metro',sub:'搭捷運到轉乘站，到站後叫 yoxi'});
+
+V.rescue=()=>`
+ <div class="appbar"><button class="iconbtn" data-back aria-label="返回">${ic('i-back','w-5 h-5')}</button><h1>替代方案</h1></div>
+ <div class="scroll" style="padding:0 0 16px">
+   <div class="alert"><b>預估 19:08 抵達，會晚 8 分鐘</b><span>降雨、公車故障。以下方案依「最在意：準時」排序。</span></div>
+   <div class="ai-say"><div class="who">${ic('i-spark')}AI 說明（數字由系統計算）</div>晚高峰路面壅塞。捷運＋yoxi 叫車預計準時，但最壞情況會晚 11 分鐘；全程叫車最壞情況為 19:03，多花 130 元。</div>
+   <article class="card opt first">
+     <div class="opt-head"><h3>守時間</h3><span class="rank">第 1</span></div>
+     <div class="legs" style="margin-top:8px">${leg('i-metro','捷運')}${arrow}${leg('i-car','yoxi 叫車',1)}</div>
+     ${timeline({exp:'18:58',worst:'19:11',tone:'warn'})}
+     <div class="meta" style="margin-top:14px"><span>預計 <b class="num">18:58</b></span><span>最壞 <b class="num">19:11</b></span><span>約 <b class="num">230</b> 元 <span class="over">超出 30 元</span></span></div>
+     <button class="btn btn-primary pick" data-go>選這個</button>
+   </article>
+   <article class="card opt">
+     <div class="opt-head"><h3>守預算</h3><span class="rank" style="background:var(--slate-400)">第 2</span></div>
+     <div class="legs" style="margin-top:8px">${leg('i-bus','下一班公車')}</div>
+     ${timeline({exp:'19:08',worst:null,tone:'stop'})}
+     <div class="meta" style="margin-top:14px"><span>預計 <b class="num">19:08</b> <span class="over">遲到 8 分鐘</span></span><span>約 <b class="num">45</b> 元</span><span>最壞情況待公車歷史資料</span></div>
+     <button class="btn btn-ghost pick" data-noop>選這個</button>
+   </article>
+   <article class="card opt">
+     <div class="opt-head"><h3>最穩妥</h3><span class="rank" style="background:var(--slate-400)">第 3</span></div>
+     <div class="legs" style="margin-top:8px">${leg('i-car','全程 yoxi 叫車',1)}</div>
+     ${timeline({exp:'18:47',worst:'19:03',tone:'warn'})}
+     <div class="meta" style="margin-top:14px"><span>預計 <b class="num">18:47</b></span><span>最壞 <b class="num">19:03</b></span><span>約 <b class="num">360</b> 元 <span class="over">超出 160 元</span></span></div>
+     <button class="btn btn-ghost pick" data-noop>選這個</button>
+   </article>
+   <div class="excluded">${ic('i-scooter')}<span>iRent 機車：降雨中，不列入</span></div>
+   <p class="whatis" style="padding:0 20px 20px">數字為示意，量級依 yoxi 第一方資料校準。</p>
+ </div>`;
+
+V.ride=()=>`
+ <div class="mapish" aria-hidden="true">
+   <svg viewBox="0 0 393 250" preserveAspectRatio="xMidYMid slice">
+     <rect width="393" height="250" fill="#E3E9F0"/>
+     <g stroke="#fff" stroke-width="14" fill="none"><path d="M-10 70 H410"/><path d="M-10 180 H410"/><path d="M90 -10 V260"/><path d="M270 -10 V260"/></g>
+     <g stroke="#D3DBE5" stroke-width="5" fill="none"><path d="M-10 125 H410"/><path d="M180 -10 V260"/><path d="M340 -10 V260"/></g>
+     <path d="M90 180 V125 H270 V70" stroke="var(--navy-800)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+     <circle cx="90" cy="180" r="9" fill="var(--red)" stroke="#fff" stroke-width="3"/>
+     <circle cx="270" cy="70" r="9" fill="var(--navy-800)" stroke="#fff" stroke-width="3"/>
+   </svg>
+ </div>
+ <div class="scroll" style="margin-top:-28px;position:relative">
+   <div class="card">
+     <h2 style="margin:0;font-size:var(--fs-xl)">到站一鍵叫 yoxi</h2>
+     <p style="margin:4px 0 6px;color:var(--slate-600);font-size:var(--fs-sm)">守時間方案的最後一段</p>
+     <div class="rows">
+       <div class="r"><span>上車點</span><b>捷運轉乘站出口（示意）</b></div>
+       <div class="r"><span>目的地</span><b>森林小館</b></div>
+       <div class="r"><span>預計抵達</span><b class="num">18:58</b></div>
+       <div class="r"><span>本方案總費用</span><b><span class="num">約 230</span> 元（含捷運）</b></div>
+       <div class="r"><span>付款</span><b>和泰 Pay</b></div>
+       <div class="r"><span>和泰 Points 折抵</span><button class="switch" role="switch" aria-checked="true" aria-label="使用和泰 Points 折抵" data-switch></button></div>
+     </div>
+     <div id="rideState"></div>
+   </div>
+ </div>
+ <div class="footer"><button class="btn btn-primary" id="callBtn">確認叫車</button></div>`;
+
+V.arrive=()=>`
+ <div class="arrive">
+   <div class="ok">${ic('i-check')}</div>
+   <h2><span class="num">18:58</span> 抵達</h2>
+   <p>比期限 19:00 早 2 分鐘</p>
+   <div class="card summary">
+     <div class="r"><span>方式</span><b>公車＋捷運＋yoxi 叫車</b></div>
+     <div class="r"><span>費用</span><b><span class="num">約 230</span> 元</b></div>
+     <div class="r"><span>這週</span><b>打開 <span class="num">3</span> 次，叫車 <span class="num">1</span> 次</b></div>
+   </div>
+   <p class="privacy">${ic('i-lock')}行程已結束，位置軌跡已刪除</p>
+ </div>
+ <div class="footer"><button class="btn btn-ghost" data-restart>回到首頁</button></div>`;
+
+/* ====== 控制 ====== */
+let cur=0, autoTimer=null;
+const views=document.getElementById('views');
+const lightStatusbar=new Set(['lockGo','lockStop','lockWarn']);
+function render(i,opts={}){
+  cur=Math.max(0,Math.min(STEPS.length-1,i));
+  const st=STEPS[cur];
+  const old=views.querySelector('.view:not(.leave)');
+  if(old&&!opts.instant){old.classList.add('leave');setTimeout(()=>old.remove(),190)}
+  const el=document.createElement('section');
+  el.className='view '+(opts.instant?'instant':'enter');
+  if(opts.instant&&old){old.remove()}
+  el.setAttribute('aria-label',st.t);
+  el.innerHTML=V[st.view]();
+  views.appendChild(el);
+  document.getElementById('sbtime').textContent=st.time;
+  document.getElementById('statusbar').style.color=lightStatusbar.has(st.view)?'#fff':'var(--navy-900)';
+  document.getElementById('mark').classList.toggle('on-dark',lightStatusbar.has(st.view));
+  document.getElementById('screen').classList.toggle('dark',lightStatusbar.has(st.view));
+  bind(el,st.view);
+  animateTimelines(el,opts);
+  renderPanel();
+}
+let lastLock=null;
+function animateTimelines(el,opts){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lock=el.querySelector('.la .tl');
+  const bands=[...el.querySelectorAll('.tl-band')];
+  if(reduce||opts.instant){lastLock=lock?lock.dataset.exp:null;return}
+  if(lock&&lastLock&&lastLock!==lock.dataset.exp){
+    const dot=lock.querySelector('.tl-dot');const w=lock.getBoundingClientRect().width;
+    const dx=(pct(lastLock)-pct(lock.dataset.exp))/100*w;
+    dot.animate([{transform:`translateX(${dx}px)`},{transform:'translateX(0)'}],{duration:520,easing:'cubic-bezier(.23,1,.32,1)',delay:120,fill:'backwards'});
+  }
+  bands.forEach((b,k)=>b.animate([{transform:'scaleX(0)',opacity:0},{transform:'scaleX(1)',opacity:.28}],{duration:480,easing:'cubic-bezier(.23,1,.32,1)',delay:160+k*60,fill:'backwards'}));
+  lastLock=lock?lock.dataset.exp:null;
+}
+function bind(el,view){
+  el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled)render(cur+1)}));
+  el.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>render(cur-1)));
+  el.querySelectorAll('[data-restart]').forEach(b=>b.addEventListener('click',()=>render(0)));
+  el.querySelectorAll('[data-switch]').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-checked',b.getAttribute('aria-checked')!=='true')));
+  if(view==='parse'){
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(()=>{
+      if(!el.isConnected)return;
+      el.querySelector('#fields').innerHTML=parsedFields;
+      el.querySelector('#aistate').textContent='已從訊息讀出以下條件，請確認。AI 只讀條件，不計算時間與費用。';
+      el.querySelector('#confirmBtn').disabled=false;
+      el.querySelectorAll('[data-seg]').forEach(s=>s.addEventListener('click',()=>{el.querySelectorAll('[data-seg]').forEach(x=>x.setAttribute('aria-pressed','false'));s.setAttribute('aria-pressed','true')}));
+    },reduce?200:1100);
+  }
+  if(view==='ride'){
+    const btn=el.querySelector('#callBtn');
+    btn.addEventListener('click',()=>callRide(el));
+  }
+}
+function callRide(el){
+  const btn=el.querySelector('#callBtn');
+  if(btn.dataset.state==='done'){render(cur+1);return}
+  if(btn.dataset.state==='busy')return;
+  btn.dataset.state='busy';btn.disabled=true;
+  btn.innerHTML='<span class="spinner" aria-hidden="true"></span>媒合司機中…';
+  setTimeout(()=>{
+    if(!el.isConnected)return;
+    el.querySelector('#rideState').innerHTML=`<div class="matched">${ic('i-check')}<span><b>司機已接單</b>，晚高峰上車等候中位數約 7 分鐘</span></div>`;
+    btn.dataset.state='done';btn.disabled=false;btn.textContent='快轉到抵達';
+  },1300);
+}
+function next(opts={}){
+  const st=STEPS[cur];
+  if(st.view==='ride'){
+    const el=views.querySelector('.view:not(.leave)');const btn=el&&el.querySelector('#callBtn');
+    if(btn&&btn.dataset.state!=='done'){callRide(el);return}
+  }
+  if(cur===STEPS.length-1){render(0,opts);return}
+  render(cur+1,opts);
+}
+function prev(opts={}){render(cur-1,opts)}
+
+const stepsEl=document.getElementById('steps');
+function renderPanel(){
+  stepsEl.innerHTML=STEPS.map((s,i)=>`<li class="${i<cur?'done':''}${i===cur?' cur':''}"><button data-step="${i}" ${i===cur?'aria-current="step"':''}><span class="n">${i+1}</span><span class="t">${s.t}<small><span class="num">${s.time}</span>・${s.s}</small></span></button></li>`).join('');
+  stepsEl.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>render(+b.dataset.step)));
+  stepsEl.querySelector('.cur')?.scrollIntoView({block:'nearest'});
+  document.getElementById('now').innerHTML=STEPS[cur].now;
+  const label=STEPS[cur].next;
+  document.getElementById('next').textContent=label;
+  document.getElementById('mnext').textContent=cur===STEPS.length-1?'重新開始':'下一步';
+  document.getElementById('mlbl').innerHTML=`<b>${cur+1}/${STEPS.length}</b>　${STEPS[cur].t}`;
+  document.getElementById('prev').disabled=cur===0;
+  document.getElementById('mprev').disabled=cur===0;
+}
+document.getElementById('next').addEventListener('click',next);
+document.getElementById('prev').addEventListener('click',prev);
+document.getElementById('mnext').addEventListener('click',next);
+document.getElementById('mprev').addEventListener('click',prev);
+document.getElementById('restart').addEventListener('click',()=>{stopAuto();render(0)});
+document.getElementById('trigger').addEventListener('click',()=>{stopAuto();render(5)});
+const autoBtn=document.getElementById('auto');
+function stopAuto(){clearInterval(autoTimer);autoTimer=null;autoBtn.setAttribute('aria-pressed','false');autoBtn.textContent='自動播放'}
+autoBtn.addEventListener('click',()=>{
+  if(autoTimer){stopAuto();return}
+  autoBtn.setAttribute('aria-pressed','true');autoBtn.textContent='停止播放';
+  autoTimer=setInterval(()=>{if(cur===STEPS.length-1){stopAuto();return}next()},4200);
+});
+const toggleRec=()=>document.body.classList.toggle('recording');
+document.getElementById('rec').addEventListener('click',toggleRec);
+document.getElementById('showpanel').addEventListener('click',toggleRec);
+document.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea'))return;
+  if(e.key==='ArrowRight'){next({instant:true})}
+  else if(e.key==='ArrowLeft'){prev({instant:true})}
+  else if(e.key==='h'||e.key==='H'){toggleRec()}
+});
+document.addEventListener('click',e=>{const n=e.target.closest('[data-noop]');if(n){n.animate([{transform:'scale(1)'},{transform:'scale(.97)'},{transform:'scale(1)'}],{duration:220,easing:'ease-out'})}});
+function fit(){const s=Math.min(1,(innerHeight-40)/852);document.documentElement.style.setProperty('--z',innerWidth>760?s.toFixed(3):1)}
+if(new URLSearchParams(location.search).has('rec'))document.body.classList.add('recording');
+addEventListener('resize',fit);fit();
+const h=parseInt(location.hash.slice(1),10);
+render(h>=1&&h<=STEPS.length?h-1:0,{instant:true});
+</script>
+</body>
+</html>
